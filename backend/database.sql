@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS teachers;
 DROP TABLE IF EXISTS students;
 DROP TABLE IF EXISTS classes;
 DROP TABLE IF EXISTS class_enrollments;
+DROP TABLE IF EXISTS attendance;
 
 -- Create teachers table
 CREATE TABLE teachers (
@@ -54,4 +55,17 @@ CREATE TABLE class_enrollments (
     FOREIGN KEY (classId) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (studentId) REFERENCES students(id) ON DELETE CASCADE,
     UNIQUE KEY unique_enrollment (classId, studentId)
+);
+
+-- Add attendance table
+CREATE TABLE attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    classId INT NOT NULL,
+    studentId INT NOT NULL,
+    status ENUM('present', 'absent') NOT NULL,
+    date DATE NOT NULL,
+    time TIME NOT NULL,
+    FOREIGN KEY (classId) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (studentId) REFERENCES students(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_daily_attendance (classId, studentId, date)
 ); 

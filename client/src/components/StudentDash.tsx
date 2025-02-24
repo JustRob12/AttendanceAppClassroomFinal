@@ -10,6 +10,7 @@ import {
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
+import QRCode from 'react-native-qrcode-svg';
 import env from '../config/env';
 
 type RootStackParamList = {
@@ -119,6 +120,24 @@ const StudentDash: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.infoText}>Course: {studentData?.course}</Text>
         </View>
 
+        <View style={styles.qrSection}>
+          <Text style={styles.sectionTitle}>My QR Code</Text>
+          <View style={styles.qrContainer}>
+            {studentData && (
+              <QRCode
+                value={JSON.stringify({
+                  studentId: studentData.studentId,
+                  course: studentData.course,
+                  name: `${studentData.firstName} ${studentData.lastName}`
+                })}
+                size={200}
+                color="#4F46E5"
+                backgroundColor="white"
+              />
+            )}
+          </View>
+        </View>
+
         <View style={styles.classesSection}>
           <Text style={styles.sectionTitle}>My Classes</Text>
           {classes.map((classItem) => (
@@ -202,14 +221,33 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#666',
   },
-  classesSection: {
-    marginTop: 20,
+  qrSection: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 15,
+  },
+  qrContainer: {
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  classesSection: {
+    marginTop: 20,
   },
   classCard: {
     backgroundColor: 'white',

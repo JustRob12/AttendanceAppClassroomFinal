@@ -7,8 +7,10 @@ import {
   ScrollView,
   Alert,
   Modal,
-  FlatList
+  FlatList,
+  Dimensions
 } from 'react-native';
+import { CameraView, BarcodeScanningResult, Camera } from 'expo-camera';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -51,17 +53,39 @@ interface StudentData {
   course: string;
 }
 
+interface AttendanceData {
+  studentId: number;
+  status: 'present' | 'absent';
+}
+
 const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
   const { classData } = route.params;
   const [enrolledStudents, setEnrolledStudents] = useState<StudentData[]>([]);
   const [availableStudents, setAvailableStudents] = useState<StudentData[]>([]);
   const [isEnrollModalVisible, setIsEnrollModalVisible] = useState(false);
+  const [isScannerVisible, setScannerVisible] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
+  const [attendanceMap, setAttendanceMap] = useState<{ [key: number]: 'present' | 'absent' | null }>({});
+  const [todayAttendance, setTodayAttendance] = useState<{ [key: number]: string }>({});
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
     fetchEnrolledStudents();
     fetchAvailableStudents();
+    fetchTodayAttendance();
+    checkPermissions();
   }, []);
+
+  const checkPermissions = async () => {
+    try {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    } catch (err) {
+      console.error('Error checking permissions:', err);
+      Alert.alert('Error', 'Failed to access camera');
+    }
+  };
 
   const fetchEnrolledStudents = async () => {
     try {
@@ -91,6 +115,25 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
       setAvailableStudents(response.data);
     } catch (error) {
       console.error('Error fetching available students:', error);
+    }
+  };
+
+  const fetchTodayAttendance = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(
+        `${env.apiUrl}/api/attendance/class/${classData.id}/today`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      const attendanceData = response.data.reduce((acc: any, curr: any) => {
+        acc[curr.studentId] = curr.status;
+        return acc;
+      }, {});
+      setTodayAttendance(attendanceData);
+    } catch (error) {
+      console.error('Error fetching today attendance:', error);
     }
   };
 
@@ -148,6 +191,77 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
     );
   };
 
+  const markAttendance = async (studentId: number, status: 'present' | 'absent') => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.post(
+        `${env.apiUrl}/api/attendance/mark`,
+        {
+          classId: classData.id,
+          studentId,
+          status
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setAttendanceMap(prev => ({
+        ...prev,
+        [studentId]: status
+      }));
+      
+      fetchTodayAttendance(); // Refresh attendance data
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      Alert.alert('Error', 'Failed to mark attendance');
+    }
+  };
+
+    const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
+    setScanned(true);
+    try {
+      const scannedData = JSON.parse(data);
+      const student = enrolledStudents.find(s => s.studentId === scannedData.studentId);
+      if (student) {
+        markAttendance(student.id, 'present');
+        Alert.alert('Success', 'Attendance marked successfully');
+      } else {
+        Alert.alert('Error', 'Student not enrolled in this class');
+      }
+      setScannerVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Invalid QR code');
+    }
+  };
+
+  const renderStudentCard = (student: StudentData) => (
+    <View key={student.id} style={styles.studentCard}>
+      <View style={styles.studentInfo}>
+        <Text style={styles.studentName}>{student.firstName} {student.lastName}</Text>
+        <Text style={styles.studentDetails}>ID: {student.studentId}</Text>
+      </View>
+      <View style={styles.attendanceButtons}>
+        <TouchableOpacity
+          style={[
+            styles.attendanceBox,
+            styles.presentBox,
+            todayAttendance[student.id] === 'present' && styles.presentBoxSelected
+          ]}
+          onPress={() => markAttendance(student.id, 'present')}
+        />
+        <TouchableOpacity
+          style={[
+            styles.attendanceBox,
+            styles.absentBox,
+            todayAttendance[student.id] === 'absent' && styles.absentBoxSelected
+          ]}
+          onPress={() => markAttendance(student.id, 'absent')}
+        />
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -169,31 +283,23 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.enrolledSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Enrolled Students</Text>
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setIsEnrollModalVisible(true)}
-            >
-              <Text style={styles.addButtonText}>+ Add Students</Text>
-            </TouchableOpacity>
-          </View>
-
-          {enrolledStudents.map(student => (
-            <View key={student.id} style={styles.studentCard}>
-              <View style={styles.studentInfo}>
-                <Text style={styles.studentName}>
-                  {student.firstName} {student.lastName}
-                </Text>
-                <Text style={styles.studentDetails}>ID: {student.studentId}</Text>
-                <Text style={styles.studentDetails}>Course: {student.course}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => handleRemoveStudent(student.id)}
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={[styles.addButton, styles.scanButton]}
+                onPress={() => setScannerVisible(true)}
               >
-                <Text style={styles.removeButtonText}>Remove</Text>
+                <Text style={styles.addButtonText}>Scan QR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={() => setIsEnrollModalVisible(true)}
+              >
+                <Text style={styles.addButtonText}>+ Add Students</Text>
               </TouchableOpacity>
             </View>
-          ))}
+          </View>
+
+          {enrolledStudents.map(renderStudentCard)}
         </View>
       </ScrollView>
 
@@ -247,6 +353,29 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      {isScannerVisible && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setScannerVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+          {scanned && (
+            <TouchableOpacity
+              style={styles.scanAgainButton}
+              onPress={() => setScanned(false)}
+            >
+              <Text style={styles.buttonText}>Tap to Scan Again</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -402,6 +531,72 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
+  },
+  attendanceButtons: {
+    flexDirection: 'row',
+    gap: 15,
+    alignItems: 'center',
+  },
+  attendanceBox: {
+    padding: 8,
+    borderRadius: 5,
+    width: 30,
+    height: 30,
+    borderWidth: 2,
+    alignItems: 'center',
+  },
+  presentBox: {
+    borderColor: '#059669',
+  },
+  absentBox: {
+    borderColor: '#DC2626',
+  },
+  presentBoxSelected: {
+    backgroundColor: '#059669',
+  },
+  absentBoxSelected: {
+    backgroundColor: '#DC2626',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  scanButton: {
+    backgroundColor: '#2563EB',
+  },
+  scannerContainer: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  closeButton: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: 32,
+  },
+  closeButtonText: {
+    color: 'black',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanAgainButton: {
+    backgroundColor: '#4F46E5',
+    padding: 15,
+    borderRadius: 10,
+    position: 'absolute',
+    bottom: 100,
+    alignSelf: 'center',
   },
 });
 
