@@ -64,6 +64,27 @@ const attendanceController = {
       console.error('Server error:', error);
       res.status(500).json({ message: 'Server error' });
     }
+  },
+
+  getStudentClassAttendance: async (req, res) => {
+    const { classId } = req.params;
+    const studentId = req.user.id;
+
+    const query = `
+      SELECT DATE_FORMAT(date, '%Y-%m-%d') as date, status
+      FROM attendance
+      WHERE classId = ? AND studentId = ?
+      ORDER BY date ASC
+    `;
+
+    db.query(query, [classId, studentId], (err, results) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ message: 'Error fetching attendance' });
+      }
+      // console.log('Attendance results:', results);
+      res.json(results);
+    });
   }
 };
 

@@ -8,6 +8,8 @@ DROP TABLE IF EXISTS students;
 DROP TABLE IF EXISTS classes;
 DROP TABLE IF EXISTS class_enrollments;
 DROP TABLE IF EXISTS attendance;
+DROP TABLE IF EXISTS student_profile_pictures;
+DROP TABLE IF EXISTS teacher_profile_pictures;
 
 -- Create teachers table
 CREATE TABLE teachers (
@@ -68,4 +70,26 @@ CREATE TABLE attendance (
     FOREIGN KEY (classId) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (studentId) REFERENCES students(id) ON DELETE CASCADE,
     UNIQUE KEY unique_daily_attendance (classId, studentId, date)
+);
+
+-- Add student_profile_pictures table
+CREATE TABLE student_profile_pictures (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    studentId INT NOT NULL,
+    imageUrl VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (studentId) REFERENCES students(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_student_picture (studentId)
+);
+
+-- Add teacher_profile_pictures table
+CREATE TABLE teacher_profile_pictures (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    teacherId INT NOT NULL,
+    imageUrl VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacherId) REFERENCES teachers(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_teacher_picture (teacherId)
 ); 

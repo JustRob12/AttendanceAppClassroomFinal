@@ -2,20 +2,22 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   Alert,
   Modal,
   FlatList,
-  Dimensions
+  StyleSheet,
+  Image
 } from 'react-native';
 import { CameraView, BarcodeScanningResult, Camera } from 'expo-camera';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/Ionicons';
+import LoadingScreen from './LoadingScreen';
+import env from '../config/env';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import env from '../config/env';
 
 type RootStackParamList = {
   AttendanceClass: { classData: ClassData };
@@ -51,11 +53,18 @@ interface StudentData {
   studentId: string;
   email: string;
   course: string;
+  profilePicture?: string;
 }
 
 interface AttendanceData {
   studentId: number;
   status: 'present' | 'absent';
+}
+
+interface ScannedStudent {
+  studentId: string;
+  name: string;
+  course: string;
 }
 
 const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
@@ -69,6 +78,8 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
   const [todayAttendance, setTodayAttendance] = useState<{ [key: number]: string }>({});
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
+  const [scannedStudent, setScannedStudent] = useState<StudentData | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     fetchEnrolledStudents();
@@ -218,46 +229,77 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-    const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
+  const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
     setScanned(true);
     try {
-      const scannedData = JSON.parse(data);
-      const student = enrolledStudents.find(s => s.studentId === scannedData.studentId);
-      if (student) {
-        markAttendance(student.id, 'present');
-        Alert.alert('Success', 'Attendance marked successfully');
-      } else {
-        Alert.alert('Error', 'Student not enrolled in this class');
-      }
-      setScannerVisible(false);
+      const scannedData: ScannedStudent = JSON.parse(data);
+      // Fetch complete student data including profile picture
+      const fetchStudentData = async () => {
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const response = await axios.get(
+            `${env.apiUrl}/api/students/profile/${scannedData.studentId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+          const student = enrolledStudents.find(s => s.studentId === scannedData.studentId);
+          if (student) {
+            setScannedStudent({ ...student, profilePicture: response.data.profilePicture });
+            setShowConfirmModal(true);
+          } else {
+            Alert.alert('Error', 'Student not enrolled in this class');
+          }
+        } catch (error) {
+          console.error('Error fetching student data:', error);
+          Alert.alert('Error', 'Failed to fetch student data');
+        }
+      };
+
+      fetchStudentData();
     } catch (error) {
       Alert.alert('Error', 'Invalid QR code');
     }
   };
 
   const renderStudentCard = (student: StudentData) => (
-    <View key={student.id} style={styles.studentCard}>
+    <View style={styles.studentCard} key={student.id}>
       <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{student.firstName} {student.lastName}</Text>
-        <Text style={styles.studentDetails}>ID: {student.studentId}</Text>
+        <Text style={styles.studentName}>
+          {student.firstName} {student.lastName}
+        </Text>
+        <Text style={styles.studentId}>ID: {student.studentId}</Text>
+        <Text style={styles.studentCourse}>{student.course}</Text>
       </View>
       <View style={styles.attendanceButtons}>
         <TouchableOpacity
           style={[
-            styles.attendanceBox,
-            styles.presentBox,
-            todayAttendance[student.id] === 'present' && styles.presentBoxSelected
+            styles.attendanceButton,
+            styles.presentButton,
+            todayAttendance[student.id] === 'present' && styles.presentActive
           ]}
           onPress={() => markAttendance(student.id, 'present')}
-        />
+        >
+          <Icon 
+            name="checkmark" 
+            size={20} 
+            color={todayAttendance[student.id] === 'present' ? '#fff' : '#9CA3AF'} 
+          />
+        </TouchableOpacity>
         <TouchableOpacity
           style={[
-            styles.attendanceBox,
-            styles.absentBox,
-            todayAttendance[student.id] === 'absent' && styles.absentBoxSelected
+            styles.attendanceButton,
+            styles.absentButton,
+            todayAttendance[student.id] === 'absent' && styles.absentActive
           ]}
           onPress={() => markAttendance(student.id, 'absent')}
-        />
+        >
+          <Icon 
+            name="close" 
+            size={20} 
+            color={todayAttendance[student.id] === 'absent' ? '#fff' : '#9CA3AF'} 
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -269,85 +311,90 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Icon name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{classData.subjectCode}</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>{classData.subjectCode}</Text>
+          <Text style={styles.headerSubtitle}>{classData.schedule}</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.classInfo}>
-          <Text style={styles.classDescription}>{classData.subjectDescription}</Text>
-          <Text style={styles.schedule}>Schedule: {classData.schedule}</Text>
+        <View style={styles.classInfoCard}>
+          <Text style={styles.classDescription}>
+            {classData.subjectDescription}
+          </Text>
         </View>
 
-        <View style={styles.enrolledSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Enrolled Students</Text>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity 
-                style={[styles.addButton, styles.scanButton]}
-                onPress={() => setScannerVisible(true)}
-              >
-                <Text style={styles.addButtonText}>Scan QR</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={() => setIsEnrollModalVisible(true)}
-              >
-                <Text style={styles.addButtonText}>+ Add Students</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {enrolledStudents.map(renderStudentCard)}
+        <View style={styles.actions}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setIsEnrollModalVisible(true)}
+          >
+            <Icon name="person-add" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Add Students</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setScannerVisible(true)}
+          >
+            <Icon name="qr-code" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Scan QR</Text>
+          </TouchableOpacity>
         </View>
+
+        <Text style={styles.sectionTitle}>Enrolled Students</Text>
+        {enrolledStudents.map(renderStudentCard)}
       </ScrollView>
 
       <Modal
         visible={isEnrollModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setIsEnrollModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Students</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Students</Text>
+            </View>
             
             <FlatList
               data={availableStudents}
+              style={styles.studentList}
               keyExtractor={item => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
-                    styles.studentSelectCard,
-                    selectedStudents.includes(item.id) && styles.selectedCard
+                    styles.studentSelectItem,
+                    selectedStudents.includes(item.id) && styles.selectedItem
                   ]}
                   onPress={() => toggleStudentSelection(item.id)}
                 >
-                  <Text style={styles.studentName}>
+                  <Text style={styles.studentSelectName}>
                     {item.firstName} {item.lastName}
                   </Text>
-                  <Text style={styles.studentDetails}>ID: {item.studentId}</Text>
-                  <Text style={styles.studentDetails}>Course: {item.course}</Text>
+                  <Text style={styles.studentSelectId}>
+                    ID: {item.studentId}
+                  </Text>
                 </TouchableOpacity>
               )}
             />
 
-            <View style={styles.modalButtons}>
+            <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.enrollButton]}
+                style={styles.enrollButton}
                 onPress={handleEnrollStudents}
               >
-                <Text style={styles.buttonText}>Enroll Selected</Text>
+                <Text style={styles.enrollButtonText}>Enroll Selected</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={styles.cancelButton}
                 onPress={() => {
                   setIsEnrollModalVisible(false);
                   setSelectedStudents([]);
                 }}
               >
-                <Text style={styles.buttonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -355,26 +402,89 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
       </Modal>
 
       {isScannerVisible && (
-        <View style={StyleSheet.absoluteFillObject}>
-          <CameraView
-            style={StyleSheet.absoluteFillObject}
-            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          />
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setScannerVisible(false)}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
+        <View style={styles.scannerOverlayContainer}>
+          <View style={styles.scannerBox}>
+            <CameraView
+              style={styles.camera}
+              onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+            />
+            <TouchableOpacity
+              style={styles.closeScannerButton}
+              onPress={() => {
+                setScannerVisible(false);
+                setScanned(false);
+              }}
+            >
+              <Icon name="close-circle" size={28} color="white" />
+            </TouchableOpacity>
+          </View>
           {scanned && (
             <TouchableOpacity
               style={styles.scanAgainButton}
               onPress={() => setScanned(false)}
             >
-              <Text style={styles.buttonText}>Tap to Scan Again</Text>
+              <Text style={styles.scanAgainText}>Scan Again</Text>
             </TouchableOpacity>
           )}
         </View>
+      )}
+
+      {showConfirmModal && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+        >
+          <View style={styles.confirmModalOverlay}>
+            <View style={styles.confirmModalContent}>
+              <View style={styles.studentProfileContainer}>
+                <View style={styles.studentProfilePic}>
+                  {scannedStudent?.profilePicture ? (
+                    <Image
+                      source={{ uri: scannedStudent.profilePicture }}
+                      style={styles.profileImage}
+                    />
+                  ) : (
+                    <Icon name="person" size={40} color="#9CA3AF" />
+                  )}
+                </View>
+                <Text style={styles.studentModalName}>
+                  {scannedStudent?.firstName} {scannedStudent?.lastName}
+                </Text>
+                <Text style={styles.studentModalId}>
+                  ID: {scannedStudent?.studentId}
+                </Text>
+                <Text style={styles.studentModalCourse}>
+                  {scannedStudent?.course}
+                </Text>
+              </View>
+
+              <View style={styles.confirmModalActions}>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => {
+                    if (scannedStudent) {
+                      markAttendance(scannedStudent.id, 'present');
+                      setShowConfirmModal(false);
+                      setScanned(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.confirmButtonText}>Mark Present</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.cancelModalButton}
+                  onPress={() => {
+                    setShowConfirmModal(false);
+                    setScanned(false);
+                  }}
+                >
+                  <Text style={styles.cancelModalText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
     </View>
   );
@@ -384,219 +494,314 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: 70,
   },
   header: {
     backgroundColor: 'white',
-    padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   backButton: {
-    marginRight: 15,
+    padding: 8,
   },
-  backButtonText: {
-    fontSize: 16,
-    color: '#4F46E5',
+  headerText: {
+    marginLeft: 12,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#111827',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   content: {
-    padding: 20,
+    flex: 1,
+    padding: 16,
   },
-  classInfo: {
+  classInfoCard: {
     backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   classDescription: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 10,
+    color: '#374151',
   },
-  schedule: {
-    fontSize: 14,
-    color: '#888',
-  },
-  enrolledSection: {
-    marginTop: 20,
-  },
-  sectionHeader: {
+  actions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 24,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#111827',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    backgroundColor: '#4F46E5',
-    padding: 8,
-    borderRadius: 5,
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
   },
   studentCard: {
     backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   studentInfo: {
     flex: 1,
   },
   studentName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    fontWeight: '600',
+    color: '#111827',
   },
-  studentDetails: {
+  studentId: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
+    marginTop: 4,
   },
-  removeButton: {
-    backgroundColor: '#DC2626',
-    padding: 8,
-    borderRadius: 5,
-  },
-  removeButtonText: {
-    color: 'white',
-    fontSize: 12,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    width: '90%',
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  studentSelectCard: {
-    backgroundColor: '#f5f5f5',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  selectedCard: {
-    backgroundColor: '#E0E7FF',
-    borderColor: '#4F46E5',
-    borderWidth: 1,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 5,
-    marginHorizontal: 5,
-  },
-  enrollButton: {
-    backgroundColor: '#4F46E5',
-  },
-  cancelButton: {
-    backgroundColor: '#DC2626',
-  },
-  buttonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  studentCourse: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   attendanceButtons: {
     flexDirection: 'row',
-    gap: 15,
-    alignItems: 'center',
+    gap: 8,
   },
-  attendanceBox: {
-    padding: 8,
-    borderRadius: 5,
-    width: 30,
-    height: 30,
+  attendanceButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 2,
-    alignItems: 'center',
+    borderColor: '#E5E7EB',
   },
-  presentBox: {
-    borderColor: '#059669',
+  presentButton: {
+    borderColor: '#10B981',
   },
-  absentBox: {
-    borderColor: '#DC2626',
+  absentButton: {
+    borderColor: '#EF4444',
   },
-  presentBoxSelected: {
-    backgroundColor: '#059669',
+  presentActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
   },
-  absentBoxSelected: {
-    backgroundColor: '#DC2626',
+  absentActive: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
   },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  scanButton: {
-    backgroundColor: '#2563EB',
-  },
-  scannerContainer: {
+  modalOverlay: {
     flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  modalHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  studentList: {
+    maxHeight: '70%',
     padding: 16,
   },
-  closeButton: {
-    backgroundColor: 'white',
+  studentSelectItem: {
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  selectedItem: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#111827',
+  },
+  studentSelectName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  studentSelectId: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  modalActions: {
+    padding: 16,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  enrollButton: {
+    flex: 1,
+    backgroundColor: '#111827',
     padding: 12,
     borderRadius: 8,
-    alignSelf: 'center',
-    marginBottom: 32,
   },
-  closeButtonText: {
-    color: 'black',
-    fontSize: 16,
-    fontWeight: 'bold',
+  enrollButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '500',
   },
-  permissionContainer: {
+  cancelButton: {
     flex: 1,
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 8,
+  },
+  cancelButtonText: {
+    color: '#111827',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  scannerOverlayContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  scannerBox: {
+    width: 300,
+    height: 300,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  camera: {
+    width: '100%',
+    height: '100%',
+  },
+  closeScannerButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 8,
+  },
+  scanAgainButton: {
+    backgroundColor: '#111827',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  scanAgainText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scanAgainButton: {
-    backgroundColor: '#4F46E5',
-    padding: 15,
-    borderRadius: 10,
-    position: 'absolute',
-    bottom: 100,
-    alignSelf: 'center',
+  confirmModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+  },
+  studentProfileContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  studentProfilePic: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  studentModalName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  studentModalId: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  studentModalCourse: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  confirmModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: '#10B981',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  cancelModalButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelModalText: {
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

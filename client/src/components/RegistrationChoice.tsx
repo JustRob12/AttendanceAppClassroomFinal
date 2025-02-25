@@ -3,10 +3,10 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Image
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { styled } from "nativewind";
 
 type RootStackParamList = {
   RegistrationChoice: undefined;
@@ -23,59 +23,37 @@ interface Props {
   navigation: RegistrationChoiceScreenNavigationProp;
 }
 
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTouchable = styled(TouchableOpacity);
+
 const RegistrationChoice: React.FC<Props> = ({ navigation }) => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Choose Registration Type</Text>
+    <StyledView className="flex-1 p-6 justify-center bg-white">
+      <StyledView className="mb-8">
+        <StyledText className="text-3xl font-bold text-gray-900 mb-2">
+          Sign up
+        </StyledText>
+        <StyledText className="text-gray-600">
+          What are you registering as?
+        </StyledText>
+      </StyledView>
       
-      <TouchableOpacity 
-        style={[styles.choiceButton, styles.teacherButton]}
+      <StyledTouchable 
+        className="bg-gray-900 py-4 rounded-lg mb-4"
         onPress={() => navigation.navigate('TeacherRegister')}
       >
-        <Text style={styles.buttonText}>Register as Teacher</Text>
-      </TouchableOpacity>
+        <StyledText className="text-white text-center font-semibold">Register as Teacher</StyledText>
+      </StyledTouchable>
 
-      <TouchableOpacity 
-        style={[styles.choiceButton, styles.studentButton]}
+      <StyledTouchable 
+        className="bg-gray-700 py-4 rounded-lg"
         onPress={() => navigation.navigate('StudentRegister')}
       >
-        <Text style={styles.buttonText}>Register as Student</Text>
-      </TouchableOpacity>
-    </View>
+        <StyledText className="text-white text-center font-semibold">Register as Student</StyledText>
+      </StyledTouchable>
+    </StyledView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 40,
-    color: '#333',
-  },
-  choiceButton: {
-    padding: 20,
-    borderRadius: 10,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  teacherButton: {
-    backgroundColor: '#4F46E5',
-  },
-  studentButton: {
-    backgroundColor: '#059669',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-});
 
 export default RegistrationChoice; 

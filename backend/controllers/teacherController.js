@@ -1,7 +1,9 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
-const { JWT_SECRET } = require('../config/constants');
+const { JWT_SECRET, apiUrl } = require('../config/constants');
+const multer = require('multer');
+const path = require('path');
 
 const teacherController = {
   register: async (req, res) => {
@@ -68,7 +70,14 @@ const teacherController = {
   },
 
   getProfile: async (req, res) => {
-    const query = 'SELECT id, firstName, lastName, email, phoneNumber FROM teachers WHERE id = ?';
+    const query = `
+      SELECT t.id, t.firstName, t.lastName, t.email, t.phoneNumber,
+             CONCAT('${apiUrl}', pp.imageUrl) as profilePicture
+      FROM teachers t
+      LEFT JOIN teacher_profile_pictures pp ON t.id = pp.teacherId
+      WHERE t.id = ?
+    `;
+    
     db.query(query, [req.user.id], (err, results) => {
       if (err) {
         return res.status(500).json({ message: 'Server error' });
@@ -78,7 +87,61 @@ const teacherController = {
       }
       res.json(results[0]);
     });
+  },
+
+  uploadProfilePicture: async (req, res) => {
+    upload(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      try {
+        const imageUrl = `/uploads/profile-pictures/${req.file.filename}`;
+        
+        const query = `
+          INSERT INTO teacher_profile_pictures (teacherId, imageUrl) 
+          VALUES (?, ?) 
+          ON DUPLICATE KEY UPDATE imageUrl = ?
+        `;
+        
+        db.query(query, [req.user.id, imageUrl, imageUrl], (error) => {
+          if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({ message: 'Error saving profile picture' });
+          }
+          res.json({ imageUrl: `${apiUrl}${imageUrl}` });
+        });
+      } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
   }
 };
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: './uploads/profile-pictures',
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Not an image file'));
+    }
+  }
+}).single('profilePicture');
 
 module.exports = teacherController; 

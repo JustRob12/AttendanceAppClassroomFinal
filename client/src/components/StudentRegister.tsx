@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 import { StackNavigationProp } from '@react-navigation/stack';
 import env from '../config/env';
+import { styled } from "nativewind";
 
 type RootStackParamList = {
   StudentRegister: undefined;
@@ -25,6 +26,12 @@ type StudentRegisterScreenNavigationProp = StackNavigationProp<
 interface Props {
   navigation: StudentRegisterScreenNavigationProp;
 }
+
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledInput = styled(TextInput);
+const StyledTouchable = styled(TouchableOpacity);
+const StyledScrollView = styled(ScrollView);
 
 const StudentRegister: React.FC<Props> = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -68,119 +75,119 @@ const StudentRegister: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Student Registration</Text>
+    <StyledScrollView className="flex-2 bg-white">
+      <StyledView className="p-7 top-10">
+        <StyledView className="mb-8">
+          <StyledText className="text-3xl font-bold text-gray-900 mb-2">
+            Sign up
+          </StyledText>
+          <StyledText className="text-gray-500">
+            Register as a student
+          </StyledText>
+        </StyledView>
 
-        <TextInput
-          style={styles.input}
-          placeholder="First Name"
-          value={formData.firstName}
-          onChangeText={(text) => setFormData({ ...formData, firstName: text })}
-        />
+        <StyledView className="flex-row space-x-4 mb-6">
+          <StyledView className="flex-1">
+            <StyledText className="text-sm font-medium text-gray-600 mb-2">First Name w/ M.I.</StyledText>
+            <StyledInput
+              className="bg-white px-4 py-3 rounded-lg"
+              style={{ borderWidth: 1, borderColor: '#e5e7eb' }}
+              placeholder="First Name"
+              placeholderTextColor="#9CA3AF"
+              value={formData.firstName}
+              onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+            />
+          </StyledView>
+          <StyledView className="flex-1">
+            <StyledText className="text-sm font-medium text-gray-600 mb-2">Last Name</StyledText>
+            <StyledInput
+              className="bg-white px-4 py-3 rounded-lg"
+              style={{ borderWidth: 1, borderColor: '#e5e7eb' }}
+              placeholder="Last Name"
+              placeholderTextColor="#9CA3AF"
+              value={formData.lastName}
+              onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+            />
+          </StyledView>
+        </StyledView>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Last Name"
-          value={formData.lastName}
-          onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-        />
+        <StyledView className="flex-row space-x-4 mb-6">
+          <StyledView className="flex-1">
+            <StyledText className="text-sm font-medium text-gray-600 mb-2">Student ID</StyledText>
+            <StyledInput
+              className="bg-white px-4 py-3 rounded-lg"
+              style={{ borderWidth: 1, borderColor: '#e5e7eb' }}
+              placeholder="Student ID"
+              placeholderTextColor="#9CA3AF"
+              value={formData.studentId}
+              onChangeText={(text) => setFormData({ ...formData, studentId: text })}
+            />
+          </StyledView>
+          <StyledView className="flex-1">
+            <StyledText className="text-sm font-medium text-gray-600 mb-2">Course</StyledText>
+            <StyledInput
+              className="bg-white px-4 py-3 rounded-lg"
+              style={{ borderWidth: 1, borderColor: '#e5e7eb' }}
+              placeholder="Course"
+              placeholderTextColor="#9CA3AF"
+              value={formData.course}
+              onChangeText={(text) => setFormData({ ...formData, course: text })}
+            />
+          </StyledView>
+        </StyledView>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Student ID"
-          value={formData.studentId}
-          onChangeText={(text) => setFormData({ ...formData, studentId: text })}
-        />
-
-        <TextInput
-          style={styles.input}
+        <StyledText className="text-sm font-medium text-gray-600 mb-2">Email</StyledText>
+        <StyledInput
+          className="bg-white px-4 py-3 rounded-lg mb-6"
+          style={{ borderWidth: 1, borderColor: '#e5e7eb' }}
           placeholder="Email"
+          placeholderTextColor="#9CA3AF"
           keyboardType="email-address"
           autoCapitalize="none"
           value={formData.email}
           onChangeText={(text) => setFormData({ ...formData, email: text })}
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Course"
-          value={formData.course}
-          onChangeText={(text) => setFormData({ ...formData, course: text })}
-        />
-
-        <TextInput
-          style={styles.input}
+        <StyledText className="text-sm font-medium text-gray-600 mb-2">Password</StyledText>
+        <StyledInput
+          className="bg-white px-4 py-3 rounded-lg mb-6"
+          style={{ borderWidth: 1, borderColor: '#e5e7eb' }}
           placeholder="Password"
+          placeholderTextColor="#9CA3AF"
           secureTextEntry
           value={formData.password}
           onChangeText={(text) => setFormData({ ...formData, password: text })}
         />
 
-        <TextInput
-          style={styles.input}
+        <StyledText className="text-sm font-medium text-gray-600 mb-2">Confirm Password</StyledText>
+        <StyledInput
+          className="bg-white px-4 py-3 rounded-lg mb-6"
+          style={{ borderWidth: 1, borderColor: '#e5e7eb' }}
           placeholder="Confirm Password"
+          placeholderTextColor="#9CA3AF"
           secureTextEntry
           value={formData.confirmPassword}
           onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Register</Text>
-        </TouchableOpacity>
+        <StyledTouchable 
+          className="bg-gray-900 py-3 rounded-lg mb-4"
+          onPress={handleSubmit}
+        >
+          <StyledText className="text-white text-center font-semibold">Sign up</StyledText>
+        </StyledTouchable>
 
-        <TouchableOpacity 
-          style={styles.linkButton}
+        <StyledTouchable 
+          className="mt-4"
           onPress={() => navigation.navigate('SignIn')}
         >
-          <Text style={styles.linkText}>Already have an account? Sign In</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <StyledText className="text-gray-500 text-center">
+            Already have an account? <StyledText className="text-gray-900 font-semibold">Log in</StyledText>
+          </StyledText>
+        </StyledTouchable>
+      </StyledView>
+    </StyledScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  formContainer: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#333',
-  },
-  input: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  button: {
-    backgroundColor: '#059669',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  buttonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  linkButton: {
-    marginTop: 15,
-  },
-  linkText: {
-    color: '#059669',
-    textAlign: 'center',
-  },
-});
 
 export default StudentRegister; 
