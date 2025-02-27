@@ -6,10 +6,10 @@ import {
   ScrollView,
   Image,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  StyleSheet
 } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { styled } from "nativewind";
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -46,22 +46,15 @@ interface ClassData {
   schedule: string;
 }
 
-const Tab = createBottomTabNavigator();
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledTouchable = styled(TouchableOpacity);
-const StyledScrollView = styled(ScrollView);
+interface ProfileScreenProps {
+  teacherData: TeacherData | null;
+  handleLogout: () => Promise<void>;
+  fetchTeacherData: () => Promise<void>;
+}
 
-// Profile Screen Component
-const ProfileScreen = ({ 
-  teacherData, 
-  handleLogout,
-  fetchTeacherData 
-}: { 
-  teacherData: TeacherData | null, 
-  handleLogout: () => Promise<void>,
-  fetchTeacherData: () => Promise<void>
-}) => {
+const Tab = createBottomTabNavigator();
+
+const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileScreenProps) => {
   const [uploading, setUploading] = useState(false);
 
   const handleProfilePicture = async () => {
@@ -108,157 +101,120 @@ const ProfileScreen = ({
   };
 
   return (
-    <StyledView className="flex-1 bg-white p-6">
-      <StyledView className="flex-1 top-10">
-        <StyledView className="items-center mb-8">
-          <StyledTouchable 
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.profileSection}>
+          <TouchableOpacity 
             onPress={handleProfilePicture}
-            style={{ marginBottom: 16 }}
+            style={styles.profileImageButton}
           >
             {teacherData?.profilePicture ? (
               <Image
                 source={{ uri: teacherData.profilePicture }}
-                style={{
-                  width: 128,
-                  height: 128,
-                  borderRadius: 64,
-                  backgroundColor: '#F3F4F6',
-              
-                }}
+                style={styles.profileImage}
                 resizeMode="cover"
               />
             ) : (
-              <StyledView className=" w-32 h-32 rounded-full bg-gray-200 items-center justify-center">
+              <View style={styles.placeholderContainer}>
                 <Icon name="person" size={50} color="#9CA3AF" />
-                <StyledText className="text-gray-500 text-xs mt-2">
+                <Text style={styles.uploadText}>
                   Tap to upload
-                </StyledText>
-              </StyledView>
+                </Text>
+              </View>
             )}
             {uploading && (
-              <View 
-                style={{
-                  position: 'absolute',
-                  width: 128,
-                  height: 128,
-                  borderRadius: 64,
-                  backgroundColor: 'rgba(0,0,0,0.3)',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
+              <View style={styles.uploadingOverlay}>
                 <ActivityIndicator color="white" />
               </View>
             )}
-          </StyledTouchable>
-          {/* <StyledText className="text-xl font-semibold text-gray-900">
+          </TouchableOpacity>
+          <Text style={styles.userName}>
             {teacherData?.firstName} {teacherData?.lastName}
-          </StyledText> */}
-        </StyledView>
+          </Text>
+          <Text style={styles.userRole}>Teacher</Text>
+        </View>
 
-        <StyledView className="bg-gray-50 rounded-xl p-6 mb-6">
-          <StyledText className="text-2xl font-bold text-gray-900 mb-6">
-            Personal Information
-          </StyledText>
-          <StyledView className="space-y-4">
-            <StyledView>
-              <StyledText className="text-sm text-gray-500">Full Name</StyledText>
-              <StyledText className="text-lg text-gray-900">{teacherData?.firstName} {teacherData?.lastName}</StyledText>
-            </StyledView>
-            <StyledView>
-              <StyledText className="text-sm text-gray-500">Email</StyledText>
-              <StyledText className="text-lg text-gray-900">{teacherData?.email}</StyledText>
-            </StyledView>
-            <StyledView>
-              <StyledText className="text-sm text-gray-500">Phone Number</StyledText>
-              <StyledText className="text-lg text-gray-900">{teacherData?.phoneNumber}</StyledText>
-            </StyledView>
-          </StyledView>
-        </StyledView>
-      </StyledView>
+        <View style={styles.infoCard}>
+          <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Icon name="mail-outline" size={24} color="#6B7280" />
+              </View>
+              <View style={styles.infoTextContainer}>
+                <Text style={styles.infoLabel}>Email Address</Text>
+                <Text style={styles.infoValue}>{teacherData?.email}</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Icon name="call-outline" size={24} color="#6B7280" />
+              </View>
+              <View style={styles.infoTextContainer}>
+                <Text style={styles.infoLabel}>Phone Number</Text>
+                <Text style={styles.infoValue}>{teacherData?.phoneNumber}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
       
-      <StyledTouchable
-        className="bg-gray-900 py-4 rounded-lg"
+      <TouchableOpacity
+        style={styles.logoutButton}
         onPress={handleLogout}
       >
-        <StyledText className="text-white text-center font-semibold">Logout</StyledText>
-      </StyledTouchable>
-    </StyledView>
+        <Icon name="log-out-outline" size={20} color="white" style={styles.logoutIcon} />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
-// Classes Screen Component
 const ClassesScreen = ({ classes, navigation }: { classes: ClassData[], navigation: any }) => {
   const [isClassModalVisible, setIsClassModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => setIsLoading(false), 1000);
-  }, []);
-
-  if (isLoading) {
-    return <LoadingScreen message="Loading classes..." />;
-  }
 
   return (
-    <StyledScrollView className="flex-1 bg-white p-6 top-10">
-      <StyledView className="flex-row justify-between items-center mb-6">
-        <StyledText className="text-2xl font-bold text-gray-900">
-          My Classes
-        </StyledText>
-        <StyledTouchable 
-          className="bg-gray-900 px-4 py-2 rounded-lg"
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Classes</Text>
+        <TouchableOpacity
+          style={styles.addButton}
           onPress={() => setIsClassModalVisible(true)}
         >
-          <StyledText className="text-white font-semibold">Add Class</StyledText>
-        </StyledTouchable>
-      </StyledView>
+          <Text style={styles.addButtonText}>Add Class</Text>
+        </TouchableOpacity>
+      </View>
 
       {classes.map((classItem) => (
-        <StyledTouchable 
+        <TouchableOpacity 
           key={classItem.id} 
-          className="mb-4 rounded-xl"
-          style={{
-            borderWidth: 1,
-            borderColor: '#F3F4F6',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
-            elevation: 2,
-          }}
+          style={styles.classCard}
           onPress={() => navigation.navigate('AttendanceClass', { classData: classItem })}
         >
-          <StyledView 
-            className="bg-gray-50 p-4"
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#F3F4F6'
-            }}
-          >
-            <StyledText className="text-lg font-semibold text-gray-900">
+          <View style={styles.classHeader}>
+            <Text style={styles.subjectCode}>
               {classItem.subjectCode}
-            </StyledText>
-            <StyledView className="flex-row items-center mt-1">
+            </Text>
+            <View style={styles.scheduleContainer}>
               <Icon name="time-outline" size={16} color="#6B7280" />
-              <StyledText className="text-sm text-gray-500 ml-1">
+              <Text style={styles.scheduleText}>
                 {classItem.schedule}
-              </StyledText>
-            </StyledView>
-          </StyledView>
-          <StyledView className="bg-white p-4">
-            <StyledText className="text-base text-gray-600">
+              </Text>
+            </View>
+          </View>
+          <View style={styles.classContent}>
+            <Text style={styles.description}>
               {classItem.subjectDescription}
-            </StyledText>
-            <StyledView className="mt-4 flex-row justify-end">
-              <StyledView className="bg-gray-100 px-3 py-1 rounded-full">
-                <StyledText className="text-sm text-gray-600">
-                  Take Attendance
-                </StyledText>
-              </StyledView>
-            </StyledView>
-          </StyledView>
-        </StyledTouchable>
+            </Text>
+            <View style={styles.attendanceButton}>
+              <Text style={styles.attendanceText}>
+                Take Attendance
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
       ))}
 
       <Class
@@ -268,35 +224,32 @@ const ClassesScreen = ({ classes, navigation }: { classes: ClassData[], navigati
       />
 
       {classes.length === 0 && (
-        <StyledView className="items-center justify-center py-8">
+        <View style={styles.emptyState}>
           <Icon name="book-outline" size={48} color="#9CA3AF" />
-          <StyledText className="text-gray-500 mt-4 text-center">
+          <Text style={styles.emptyStateText}>
             No classes added yet
-          </StyledText>
-        </StyledView>
+          </Text>
+        </View>
       )}
-    </StyledScrollView>
+    </ScrollView>
   );
 };
 
-// Reports Screen Component (Empty for now)
 const ReportsScreen = () => {
   return (
-    <StyledView className="flex-1 bg-white p-6 top-10">
-      <StyledText className="text-2xl font-bold text-gray-900 mb-6">
-        Generate Reports
-      </StyledText>
-      <StyledView className="items-center justify-center flex-1">
+    <View style={[styles.container, styles.centerContent]}>
+      <Text style={styles.headerTitle}>Generate Reports</Text>
+      <View style={styles.emptyState}>
         <Icon name="bar-chart-outline" size={48} color="#9CA3AF" />
-        <StyledText className="text-gray-500 mt-4 text-center">
+        <Text style={styles.emptyStateText}>
           Reports feature coming soon
-        </StyledText>
-      </StyledView>
-    </StyledView>
+        </Text>
+      </View>
+    </View>
   );
 };
 
-const TeacherDash: React.FC<Props> = ({ navigation }) => {
+const TeacherDash = ({ navigation }: { navigation: any }) => {
   const [teacherData, setTeacherData] = useState<TeacherData | null>(null);
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -367,11 +320,7 @@ const TeacherDash: React.FC<Props> = ({ navigation }) => {
         },
         tabBarActiveTintColor: '#111827',
         tabBarInactiveTintColor: '#6B7280',
-        tabBarStyle: {
-          backgroundColor: 'white',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB'
-        },
+        tabBarStyle: styles.tabBar,
         headerShown: false
       })}
     >
@@ -396,5 +345,242 @@ const TeacherDash: React.FC<Props> = ({ navigation }) => {
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  content: {
+    flex: 1,
+    padding: 24,
+    paddingTop: 40,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingVertical: 16,
+  },
+  profileImageButton: {
+    marginBottom: 12,
+  },
+  profileImage: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: '#F3F4F6',
+  },
+  placeholderContainer: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  infoTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 24,
+  },
+  infoSection: {
+    gap: 16,
+  },
+  infoItem: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  value: {
+    fontSize: 18,
+    color: '#111827',
+  },
+  logoutButton: {
+    backgroundColor: '#DC2626',
+    padding: 16,
+    borderRadius: 8,
+    marginHorizontal: 24,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutIcon: {
+    marginRight: 8,
+  },
+  logoutText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    paddingTop: 40,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  addButton: {
+    backgroundColor: '#111827',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  classCard: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  classHeader: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  subjectCode: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  scheduleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  scheduleText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 4,
+  },
+  classContent: {
+    padding: 16,
+  },
+  description: {
+    fontSize: 16,
+    color: '#4B5563',
+    marginBottom: 16,
+  },
+  attendanceButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  attendanceText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  emptyStateText: {
+    color: '#6B7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  tabBar: {
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginTop: 12,
+  },
+  userRole: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  infoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 8,
+  },
+});
 
 export default TeacherDash; 

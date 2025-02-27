@@ -321,6 +321,7 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: 'center',
+    marginTop: 60,
     marginBottom: 32,
   },
   profileImageContainer: {

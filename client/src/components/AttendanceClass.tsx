@@ -14,6 +14,7 @@ import { CameraView, BarcodeScanningResult, Camera } from 'expo-camera';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Audio } from 'expo-av';
 import LoadingScreen from './LoadingScreen';
 import env from '../config/env';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -80,6 +81,7 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
   const [scanned, setScanned] = useState(false);
   const [scannedStudent, setScannedStudent] = useState<StudentData | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   useEffect(() => {
     fetchEnrolledStudents();
@@ -229,10 +231,31 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
-    setScanned(true);
+  const playBeep = async () => {
     try {
-      const scannedData: ScannedStudent = JSON.parse(data);
+      const { sound } = await Audio.Sound.createAsync(
+        require('../../assets/sounds/beep.mp3')
+      );
+      setSound(sound);
+      await sound.playAsync();
+    } catch (error) {
+      console.error('Error playing sound:', error);
+    }
+  };
+
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+
+  const handleBarCodeScanned = async ({ data }: BarcodeScanningResult) => {
+    try {
+      setScanned(true);
+      await playBeep();
+      const scannedData = JSON.parse(data);
       // Fetch complete student data including profile picture
       const fetchStudentData = async () => {
         try {
@@ -408,16 +431,25 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
               style={styles.camera}
               onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
             />
-            <TouchableOpacity
-              style={styles.closeScannerButton}
-              onPress={() => {
-                setScannerVisible(false);
-                setScanned(false);
-              }}
-            >
-              <Icon name="close-circle" size={28} color="white" />
-            </TouchableOpacity>
+            <View style={styles.scannerIndicator}>
+              <View style={[styles.scannerCorner, styles.topLeft]} />
+              <View style={[styles.scannerCorner, styles.topRight]} />
+              <View style={[styles.scannerCorner, styles.bottomLeft]} />
+              <View style={[styles.scannerCorner, styles.bottomRight]} />
+            </View>
           </View>
+          <Text style={styles.scanText}>
+            Position QR code within the frame to scan
+          </Text>
+          <TouchableOpacity
+            style={styles.closeScannerButton}
+            onPress={() => {
+              setScannerVisible(false);
+              setScanned(false);
+            }}
+          >
+            <Text style={styles.closeScannerText}>Close Scanner</Text>
+          </TouchableOpacity>
           {scanned && (
             <TouchableOpacity
               style={styles.scanAgainButton}
@@ -704,16 +736,73 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   camera: {
     width: '100%',
     height: '100%',
   },
-  closeScannerButton: {
+  scannerIndicator: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    padding: 8,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  scannerCorner: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderColor: '#00ff00',
+    borderWidth: 3,
+  },
+  topLeft: {
+    top: 20,
+    left: 20,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  topRight: {
+    top: 20,
+    right: 20,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+  },
+  bottomLeft: {
+    bottom: 20,
+    left: 20,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+  },
+  bottomRight: {
+    bottom: 20,
+    right: 20,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+  },
+  scanText: {
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  closeScannerButton: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    width: 300,
+  },
+  closeScannerText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   scanAgainButton: {
     backgroundColor: '#111827',
