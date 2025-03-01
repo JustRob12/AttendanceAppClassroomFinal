@@ -172,8 +172,48 @@ const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileS
   );
 };
 
-const ClassesScreen = ({ classes, navigation }: { classes: ClassData[], navigation: any }) => {
+const ClassesScreen = ({ classes, navigation, fetchClasses }: { classes: ClassData[], navigation: any, fetchClasses: () => Promise<void> }) => {
   const [isClassModalVisible, setIsClassModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [currentEditClass, setCurrentEditClass] = useState<ClassData | null>(null);
+
+  const handleEditClass = (classItem: ClassData) => {
+    setCurrentEditClass(classItem);
+    setIsEditModalVisible(true);
+  };
+
+  const handleDeleteClass = (classId: number) => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete this class? This will also delete all enrolled students and attendance records for this class.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              await axios.delete(`${env.apiUrl}/api/classes/${classId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              
+              // Refresh the class list after deletion
+              fetchClasses();
+              Alert.alert('Success', 'Class deleted successfully');
+            } catch (error) {
+              console.error('Error deleting class:', error);
+              Alert.alert('Error', 'Failed to delete class');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleClassAdded = () => {
+    fetchClasses();
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -208,10 +248,35 @@ const ClassesScreen = ({ classes, navigation }: { classes: ClassData[], navigati
             <Text style={styles.description}>
               {classItem.subjectDescription}
             </Text>
-            <View style={styles.attendanceButton}>
-              <Text style={styles.attendanceText}>
-                Take Attendance
-              </Text>
+            <View style={styles.classActions}>
+              <TouchableOpacity 
+                style={styles.attendanceButton}
+                onPress={() => navigation.navigate('AttendanceClass', { classData: classItem })}
+              >
+                <Icon name="calendar-outline" size={18} color="#4F46E5" />
+                <Text style={styles.attendanceText}>Take Attendance</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.managementButtons}>
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={(e) => {
+                    e.stopPropagation(); // Prevent navigation to attendance screen
+                    handleEditClass(classItem);
+                  }}
+                >
+                  <Icon name="create-outline" size={20} color="#4B5563" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.deleteButton}
+                  onPress={(e) => {
+                    e.stopPropagation(); // Prevent navigation to attendance screen
+                    handleDeleteClass(classItem.id);
+                  }}
+                >
+                  <Icon name="trash-outline" size={20} color="#DC2626" />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </TouchableOpacity>
@@ -220,8 +285,20 @@ const ClassesScreen = ({ classes, navigation }: { classes: ClassData[], navigati
       <Class
         visible={isClassModalVisible}
         onClose={() => setIsClassModalVisible(false)}
-        onClassAdded={() => {}}
+        onClassAdded={handleClassAdded}
       />
+
+      {currentEditClass && (
+        <Class
+          visible={isEditModalVisible}
+          onClose={() => {
+            setIsEditModalVisible(false);
+            setCurrentEditClass(null);
+          }}
+          onClassAdded={handleClassAdded}
+          classToEdit={currentEditClass}
+        />
+      )}
 
       {classes.length === 0 && (
         <View style={styles.emptyState}>
@@ -336,7 +413,7 @@ const TeacherDash = ({ navigation }: { navigation: any }) => {
       />
       <Tab.Screen 
         name="Classes" 
-        children={() => <ClassesScreen classes={classes} navigation={navigation} />}
+        children={() => <ClassesScreen classes={classes} navigation={navigation} fetchClasses={fetchClasses} />}
       />
       <Tab.Screen 
         name="Reports" 
@@ -512,16 +589,61 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     marginBottom: 16,
   },
-  attendanceButton: {
-    alignSelf: 'flex-end',
+  classActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  managementButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F3F4F6',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  attendanceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    elevation: 1,
   },
   attendanceText: {
     fontSize: 14,
-    color: '#6B7280',
+    fontWeight: '500',
+    color: '#4F46E5',
+    marginLeft: 6,
   },
   emptyState: {
     alignItems: 'center',
@@ -580,6 +702,14 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E5E7EB',
     marginVertical: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginLeft: 4,
+  },
+  deleteText: {
+    color: '#DC2626',
   },
 });
 
