@@ -120,6 +120,55 @@ const teacherController = {
         res.status(500).json({ message: 'Server error' });
       }
     });
+  },
+
+  getTotalStudents: async (req, res) => {
+    try {
+      const teacherId = req.user.id;
+      
+      const query = `
+        SELECT COUNT(DISTINCT ce.studentId) as totalStudents
+        FROM classes c
+        LEFT JOIN class_enrollments ce ON c.id = ce.classId
+        WHERE c.teacherId = ?
+      `;
+
+      db.query(query, [teacherId], (err, results) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({ message: 'Error fetching total students' });
+        }
+        res.json({ totalStudents: results[0].totalStudents });
+      });
+    } catch (error) {
+      console.error('Server error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  },
+
+  getAverageAttendance: async (req, res) => {
+    try {
+      const teacherId = req.user.id;
+      
+      const query = `
+        SELECT 
+          COUNT(CASE WHEN a.status = 'present' THEN 1 END) * 100.0 / COUNT(*) as averageAttendance
+        FROM classes c
+        JOIN attendance a ON c.id = a.classId
+        WHERE c.teacherId = ?
+      `;
+
+      db.query(query, [teacherId], (err, results) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({ message: 'Error fetching average attendance' });
+        }
+        res.json({ averageAttendance: results[0].averageAttendance || 0 });
+      });
+    } catch (error) {
+      console.error('Server error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
   }
 };
 

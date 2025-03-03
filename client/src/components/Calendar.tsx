@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, Dimensions } from 'react-native';
-import { styled } from "nativewind";
+import { View, Text, TouchableOpacity, Modal, Dimensions, StyleSheet } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import env from '../config/env';
 import LoadingScreen from './LoadingScreen';
-
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledTouchable = styled(TouchableOpacity);
+import { AntDesign } from '@expo/vector-icons';
 
 interface CalendarProps {
   classId: number;
@@ -61,10 +57,8 @@ const Calendar: React.FC<CalendarProps> = ({ classId, visible, subjectName, onCl
   };
 
   const getAttendanceStatus = (dateString: string) => {
-    // Format the date to match MySQL date format (YYYY-MM-DD)
     const formattedDate = dateString.split('T')[0];
     const attendance = attendanceData.find(a => {
-      // Format both dates to handle any timezone issues
       const attendanceDate = new Date(a.date).toISOString().split('T')[0];
       return attendanceDate === formattedDate;
     });
@@ -80,7 +74,7 @@ const Calendar: React.FC<CalendarProps> = ({ classId, visible, subjectName, onCl
     // Empty cells for days before the first day
     for (let i = 0; i < firstDay; i++) {
       week.push(
-        <StyledView key={`empty-${i}`} className="w-11 h-11" />
+        <View key={`empty-${i}`} style={styles.dayCell} />
       );
     }
 
@@ -90,33 +84,40 @@ const Calendar: React.FC<CalendarProps> = ({ classId, visible, subjectName, onCl
       const dateString = date.toISOString().split('T')[0];
       const status = getAttendanceStatus(dateString);
       
-      let dayStyle = "bg-white";
-      let textStyle = "text-gray-700";
+      let cellStyle = [styles.dayCell];
+      let textStyle = [styles.dayText];
       
       if (status === 'present') {
-        dayStyle = "bg-green-500";
-        textStyle = "text-white font-medium";
+        cellStyle.push({
+          ...styles.dayCell,
+          ...styles.presentCell
+        });
+        textStyle.push({
+          ...styles.dayText,
+          ...styles.presentText
+        });
       } else if (status === 'absent') {
-        dayStyle = "bg-red-500";
-        textStyle = "text-white font-medium";
+        cellStyle.push({
+          ...styles.dayCell,
+          ...styles.absentCell
+        });
+        textStyle.push({
+          ...styles.dayText,
+          ...styles.absentText
+        });
       }
 
       week.push(
-        <StyledView 
-          key={day} 
-          className={`w-11 h-11 items-center justify-center rounded-full ${dayStyle}`}
-        >
-          <StyledText className={`text-sm ${textStyle}`}>
-            {day}
-          </StyledText>
-        </StyledView>
+        <View key={day} style={cellStyle}>
+          <Text style={textStyle}>{day}</Text>
+        </View>
       );
 
       if (week.length === 7) {
         weeks.push(
-          <StyledView key={weeks.length} className="flex-row justify-around mb-2">
+          <View key={weeks.length} style={styles.weekRow}>
             {week}
-          </StyledView>
+          </View>
         );
         week = [];
       }
@@ -126,13 +127,13 @@ const Calendar: React.FC<CalendarProps> = ({ classId, visible, subjectName, onCl
     if (week.length > 0) {
       while (week.length < 7) {
         week.push(
-          <StyledView key={`empty-end-${week.length}`} className="w-11 h-11" />
+          <View key={`empty-end-${week.length}`} style={styles.dayCell} />
         );
       }
       weeks.push(
-        <StyledView key={weeks.length} className="flex-row justify-around mb-2">
+        <View key={weeks.length} style={styles.weekRow}>
           {week}
-        </StyledView>
+        </View>
       );
     }
 
@@ -157,82 +158,234 @@ const Calendar: React.FC<CalendarProps> = ({ classId, visible, subjectName, onCl
       animationType="fade"
       onRequestClose={onClose}
     >
-      <StyledView className="flex-1 bg-black/50 justify-center items-center">
-        <StyledView 
-          className="bg-white rounded-xl w-11/12 max-h-[90%]"
-          style={{ maxHeight: screenHeight * 0.9 }}
-        >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
           {/* Header */}
-          <StyledView className="p-4 border-b border-gray-200">
-            <StyledText className="text-xl font-bold text-gray-900 text-center">
-              {subjectName}
-            </StyledText>
-          </StyledView>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>{subjectName}</Text>
+          </View>
 
-          <StyledView className="p-4">
+          <View style={styles.calendarContainer}>
             {/* Month Navigation */}
-            <StyledView className="flex-row justify-between items-center mb-4">
-              <StyledTouchable 
-                className="w-10 h-10 items-center justify-center rounded-full bg-gray-100"
+            <View style={styles.monthNavigation}>
+              <TouchableOpacity 
+                style={styles.navigationButton}
                 onPress={() => changeMonth(-1)}
               >
-                <StyledText className="text-gray-600 text-xl">←</StyledText>
-              </StyledTouchable>
-              <StyledText className="text-lg font-semibold text-gray-900">
+                <AntDesign name="left" size={20} color="#4F46E5" />
+              </TouchableOpacity>
+              <Text style={styles.monthText}>
                 {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-              </StyledText>
-              <StyledTouchable 
-                className="w-10 h-10 items-center justify-center rounded-full bg-gray-100"
+              </Text>
+              <TouchableOpacity 
+                style={styles.navigationButton}
                 onPress={() => changeMonth(1)}
               >
-                <StyledText className="text-gray-600 text-xl">→</StyledText>
-              </StyledTouchable>
-            </StyledView>
+                <AntDesign name="right" size={20} color="#4F46E5" />
+              </TouchableOpacity>
+            </View>
 
             {/* Weekday Headers */}
-            <StyledView className="flex-row justify-around mb-2">
+            <View style={styles.weekdayHeader}>
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <StyledText key={day} className="w-11 text-center text-gray-500 text-sm font-medium">
+                <Text key={day} style={styles.weekdayText}>
                   {day}
-                </StyledText>
+                </Text>
               ))}
-            </StyledView>
+            </View>
 
             {/* Calendar Grid */}
             {loading ? (
-              <StyledView className="h-48">
+              <View style={styles.loadingContainer}>
                 <LoadingScreen message="Loading attendance..." />
-              </StyledView>
+              </View>
             ) : (
               renderCalendar()
             )}
 
             {/* Legend */}
-            <StyledView className="flex-row justify-center mt-4 space-x-6">
-              <StyledView className="flex-row items-center">
-                <StyledView className="w-4 h-4 rounded-full bg-green-500 mr-2" />
-                <StyledText className="text-sm text-gray-600">Present</StyledText>
-              </StyledView>
-              <StyledView className="flex-row items-center">
-                <StyledView className="w-4 h-4 rounded-full bg-red-500 mr-2" />
-                <StyledText className="text-sm text-gray-600">Absent</StyledText>
-              </StyledView>
-            </StyledView>
-          </StyledView>
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.presentDot]} />
+                <Text style={styles.legendText}>Present</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.absentDot]} />
+                <Text style={styles.legendText}>Absent</Text>
+              </View>
+            </View>
+          </View>
 
           {/* Close Button */}
-          <StyledView className="p-4 border-t border-gray-200">
-            <StyledTouchable 
-              className="bg-gray-900 py-3 rounded-lg"
+          <View style={styles.footer}>
+            <TouchableOpacity 
+              style={styles.closeButton}
               onPress={onClose}
             >
-              <StyledText className="text-center text-white font-semibold">Close</StyledText>
-            </StyledTouchable>
-          </StyledView>
-        </StyledView>
-      </StyledView>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: screenHeight * 0.9,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  header: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  calendarContainer: {
+    padding: 20,
+  },
+  monthNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  navigationButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  weekdayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 10,
+  },
+  weekdayText: {
+    width: 44,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  weekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  dayCell: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+  },
+  dayText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  presentCell: {
+    backgroundColor: '#10B981',
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+  },
+  presentText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
+  },
+  absentCell: {
+    backgroundColor: '#EF4444',
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+  },
+  absentText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    height: 300,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 24,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legendDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  presentDot: {
+    backgroundColor: '#10B981',
+  },
+  absentDot: {
+    backgroundColor: '#EF4444',
+  },
+  legendText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  closeButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
 
 export default Calendar; 

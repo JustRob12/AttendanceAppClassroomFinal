@@ -13,7 +13,7 @@ import {
 import { CameraView, BarcodeScanningResult, Camera } from 'expo-camera';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { AntDesign } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import LoadingScreen from './LoadingScreen';
 import env from '../config/env';
@@ -286,88 +286,109 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const renderStudentCard = (student: StudentData) => (
-    <View style={styles.studentCard} key={student.id}>
-      <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>
-          {student.firstName} {student.lastName}
-        </Text>
-        <Text style={styles.studentId}>ID: {student.studentId}</Text>
-        <Text style={styles.studentCourse}>{student.course}</Text>
-      </View>
-      <View style={styles.attendanceButtons}>
-        <TouchableOpacity
-          style={[
-            styles.attendanceButton,
-            styles.presentButton,
-            todayAttendance[student.id] === 'present' && styles.presentActive
-          ]}
-          onPress={() => markAttendance(student.id, 'present')}
-        >
-          <Icon 
-            name="checkmark" 
-            size={20} 
-            color={todayAttendance[student.id] === 'present' ? '#fff' : '#9CA3AF'} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.attendanceButton,
-            styles.absentButton,
-            todayAttendance[student.id] === 'absent' && styles.absentActive
-          ]}
-          onPress={() => markAttendance(student.id, 'absent')}
-        >
-          <Icon 
-            name="close" 
-            size={20} 
-            color={todayAttendance[student.id] === 'absent' ? '#fff' : '#9CA3AF'} 
-          />
-        </TouchableOpacity>
+    <View style={styles.enhancedStudentCard} key={student.id}>
+      <View style={styles.studentCardHeader}>
+        <View style={styles.studentMainInfo}>
+          <Text style={styles.enhancedStudentName}>
+            {student.firstName} {student.lastName}
+          </Text>
+          <View style={styles.enhancedStudentIdContainer}>
+            <AntDesign name="idcard" size={16} color="#6B7280" />
+            <Text style={styles.enhancedStudentId}>ID: {student.studentId}</Text>
+          </View>
+          <View style={styles.enhancedCourseContainer}>
+            <AntDesign name="book" size={16} color="#6B7280" />
+            <Text style={styles.enhancedStudentCourse}>{student.course}</Text>
+          </View>
+        </View>
+        <View style={styles.attendanceButtons}>
+          <TouchableOpacity
+            style={[
+              styles.enhancedAttendanceButton,
+              styles.presentButton,
+              todayAttendance[student.id] === 'present' && styles.presentActive
+            ]}
+            onPress={() => markAttendance(student.id, 'present')}
+          >
+            <AntDesign 
+              name="check" 
+              size={20} 
+              color={todayAttendance[student.id] === 'present' ? '#fff' : '#10B981'} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.enhancedAttendanceButton,
+              styles.absentButton,
+              todayAttendance[student.id] === 'absent' && styles.absentActive
+            ]}
+            onPress={() => markAttendance(student.id, 'absent')}
+          >
+            <AntDesign 
+              name="close" 
+              size={20} 
+              color={todayAttendance[student.id] === 'absent' ? '#fff' : '#EF4444'} 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>{classData.subjectCode}</Text>
-          <Text style={styles.headerSubtitle}>{classData.schedule}</Text>
+      <View style={styles.enhancedHeader}>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            style={styles.enhancedBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <AntDesign name="arrowleft" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.enhancedHeaderTitle}>{classData.subjectCode}</Text>
+            <Text style={styles.enhancedHeaderSubtitle}>{classData.schedule}</Text>
+          </View>
         </View>
+        <Text style={styles.enhancedDescription}>
+          {classData.subjectDescription}
+        </Text>
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.classInfoCard}>
-          <Text style={styles.classDescription}>
-            {classData.subjectDescription}
-          </Text>
-        </View>
+      <View style={styles.enhancedActions}>
+        {/* <TouchableOpacity 
+          style={styles.enhancedActionButton}
+          onPress={() => setIsEnrollModalVisible(true)}
+        >
+          <AntDesign name="adduser" size={20} color="white" />
+          <Text style={styles.enhancedActionButtonText}>Add Students</Text>
+        </TouchableOpacity> */}
+        <TouchableOpacity 
+          style={styles.enhancedActionButton}
+          onPress={() => setScannerVisible(true)}
+        >
+          <AntDesign name="qrcode" size={20} color="white" />
+          <Text style={styles.enhancedActionButtonText}>Scan QR</Text>
+        </TouchableOpacity>
+      </View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setIsEnrollModalVisible(true)}
-          >
-            <Icon name="person-add" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Add Students</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setScannerVisible(true)}
-          >
-            <Icon name="qr-code" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Scan QR</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionTitle}>Enrolled Students</Text>
-        {enrolledStudents.map(renderStudentCard)}
+      <ScrollView style={styles.enhancedContent}>
+        <Text style={styles.enhancedSectionTitle}>Enrolled Students</Text>
+        {enrolledStudents.length > 0 ? (
+          enrolledStudents.map(renderStudentCard)
+        ) : (
+          <View style={styles.enhancedEmptyState}>
+            <View style={styles.emptyStateIconContainer}>
+              <AntDesign name="team" size={48} color="#4F46E5" />
+            </View>
+            <Text style={styles.enhancedEmptyStateTitle}>
+              No Students Enrolled
+            </Text>
+            <Text style={styles.enhancedEmptyStateText}>
+              Start by adding students to this class
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <Modal
@@ -477,7 +498,7 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
                       style={styles.profileImage}
                     />
                   ) : (
-                    <Icon name="person" size={40} color="#9CA3AF" />
+                    <AntDesign name="user" size={40} color="#9CA3AF" />
                   )}
                 </View>
                 <Text style={styles.studentModalName}>
@@ -525,119 +546,149 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingTop: 70,
+    backgroundColor: '#F9FAFB',
   },
-  header: {
-    backgroundColor: 'white',
+  enhancedHeader: {
+    backgroundColor: '#4F46E5',
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    marginBottom: 16,
   },
-  backButton: {
+  enhancedBackButton: {
     padding: 8,
+    marginRight: 12,
   },
-  headerText: {
-    marginLeft: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  content: {
+  headerTextContainer: {
     flex: 1,
-    padding: 16,
   },
-  classInfoCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  enhancedHeaderTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
   },
-  classDescription: {
+  enhancedHeaderSubtitle: {
     fontSize: 16,
-    color: '#374151',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
-  actions: {
+  enhancedDescription: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 8,
+  },
+  enhancedActions: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: -25,
+    marginHorizontal: 24,
     marginBottom: 24,
   },
-  actionButton: {
+  enhancedActionButton: {
     flex: 1,
     backgroundColor: '#111827',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  actionButtonText: {
+  enhancedActionButtonText: {
     color: 'white',
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  sectionTitle: {
-    fontSize: 18,
+  enhancedContent: {
+    flex: 1,
+    padding: 24,
+  },
+  enhancedSectionTitle: {
+    fontSize: 20,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 16,
   },
-  studentCard: {
+  enhancedStudentCard: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  studentCardHeader: {
+    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-  studentInfo: {
+  studentMainInfo: {
     flex: 1,
   },
-  studentName: {
-    fontSize: 16,
+  enhancedStudentName: {
+    fontSize: 18,
     fontWeight: '600',
     color: '#111827',
+    marginBottom: 8,
   },
-  studentId: {
+  enhancedStudentIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  enhancedStudentId: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 4,
+    marginLeft: 8,
   },
-  studentCourse: {
+  enhancedCourseContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  enhancedStudentCourse: {
     fontSize: 14,
     color: '#6B7280',
+    marginLeft: 8,
   },
   attendanceButtons: {
     flexDirection: 'row',
     gap: 8,
   },
-  attendanceButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  enhancedAttendanceButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
   },
   presentButton: {
     borderColor: '#10B981',
+    backgroundColor: 'white',
   },
   absentButton: {
     borderColor: '#EF4444',
+    backgroundColor: 'white',
   },
   presentActive: {
     backgroundColor: '#10B981',
@@ -646,6 +697,32 @@ const styles = StyleSheet.create({
   absentActive: {
     backgroundColor: '#EF4444',
     borderColor: '#EF4444',
+  },
+  enhancedEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 40,
+  },
+  emptyStateIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  enhancedEmptyStateTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  enhancedEmptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,

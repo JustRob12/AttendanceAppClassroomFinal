@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS class_enrollments;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS student_profile_pictures;
 DROP TABLE IF EXISTS teacher_profile_pictures;
+DROP TABLE IF EXISTS class_keycodes;
 
 -- Create teachers table
 CREATE TABLE teachers (
@@ -92,4 +93,15 @@ CREATE TABLE teacher_profile_pictures (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (teacherId) REFERENCES teachers(id) ON DELETE CASCADE,
     UNIQUE KEY unique_teacher_picture (teacherId)
+);
+
+-- Add class_keycodes table
+CREATE TABLE class_keycodes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    classId INT NOT NULL,
+    keycode VARCHAR(10) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (classId) REFERENCES classes(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_class_keycode (classId)
 ); 

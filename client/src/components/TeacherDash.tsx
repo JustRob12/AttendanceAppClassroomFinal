@@ -7,14 +7,15 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  StyleSheet
+  StyleSheet,
+  Modal
 } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
 import env from '../config/env';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { AntDesign } from '@expo/vector-icons';
 import Class from './Class';
 import LoadingScreen from './LoadingScreen';
 import * as ImagePicker from 'expo-image-picker';
@@ -44,17 +45,25 @@ interface ClassData {
   subjectCode: string;
   subjectDescription: string;
   schedule: string;
+  keycode?: string;
+}
+
+interface TeacherStats {
+  totalClasses: number;
+  totalStudents: number;
+  averageAttendance: number;
 }
 
 interface ProfileScreenProps {
   teacherData: TeacherData | null;
   handleLogout: () => Promise<void>;
   fetchTeacherData: () => Promise<void>;
+  stats: TeacherStats;
 }
 
 const Tab = createBottomTabNavigator();
 
-const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileScreenProps) => {
+const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData, stats }: ProfileScreenProps) => {
   const [uploading, setUploading] = useState(false);
 
   const handleProfilePicture = async () => {
@@ -102,11 +111,12 @@ const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileS
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.profileSection}>
+      {/* Profile Header Section */}
+      <View style={styles.profileHeader}>
+        <View style={styles.profileImageSection}>
           <TouchableOpacity 
             onPress={handleProfilePicture}
-            style={styles.profileImageButton}
+            style={styles.profileImageWrapper}
           >
             {teacherData?.profilePicture ? (
               <Image
@@ -116,10 +126,8 @@ const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileS
               />
             ) : (
               <View style={styles.placeholderContainer}>
-                <Icon name="person" size={50} color="#9CA3AF" />
-                <Text style={styles.uploadText}>
-                  Tap to upload
-                </Text>
+                <AntDesign name="user" size={50} color="#9CA3AF" />
+                <Text style={styles.uploadText}>Tap to change</Text>
               </View>
             )}
             {uploading && (
@@ -128,17 +136,47 @@ const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileS
               </View>
             )}
           </TouchableOpacity>
-          <Text style={styles.userName}>
-            {teacherData?.firstName} {teacherData?.lastName}
-          </Text>
-          <Text style={styles.userRole}>Teacher</Text>
+          <View style={styles.nameSection}>
+            <Text style={styles.userName}>
+              {teacherData?.firstName} {teacherData?.lastName}
+            </Text>
+            <View style={styles.badgeContainer}>
+              <AntDesign name="star" size={16} color="#FFD700" />
+              <Text style={styles.userRole}>Faculty Member</Text>
+            </View>
+          </View>
         </View>
+      </View>
 
+      {/* Stats Section */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{stats.totalClasses}</Text>
+          <Text style={styles.statLabel}>Classes</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{stats.totalStudents}</Text>
+          <Text style={styles.statLabel}>Students</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{stats.averageAttendance}%</Text>
+          <Text style={styles.statLabel}>Attendance</Text>
+        </View>
+      </View>
+
+      {/* Info Cards */}
+      <ScrollView style={styles.scrollContainer}>
         <View style={styles.infoCard}>
-          <View style={styles.infoSection}>
+          <View style={styles.infoHeader}>
+            <Text style={styles.infoTitle}>Contact Information</Text>
+            <AntDesign name="contacts" size={24} color="#4F46E5" />
+          </View>
+          <View style={styles.infoContent}>
             <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Icon name="mail-outline" size={24} color="#6B7280" />
+              <View style={styles.infoIconContainer}>
+                <AntDesign name="mail" size={20} color="#4F46E5" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Email Address</Text>
@@ -146,11 +184,11 @@ const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileS
               </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={styles.infoDivider} />
 
             <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Icon name="call-outline" size={24} color="#6B7280" />
+              <View style={styles.infoIconContainer}>
+                <AntDesign name="phone" size={20} color="#4F46E5" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Phone Number</Text>
@@ -159,14 +197,41 @@ const ProfileScreen = ({ teacherData, handleLogout, fetchTeacherData }: ProfileS
             </View>
           </View>
         </View>
-      </View>
-      
+
+        {/* <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Text style={styles.infoTitle}>Quick Actions</Text>
+            <AntDesign name="appstore-o" size={24} color="#4F46E5" />
+          </View>
+          <View style={styles.quickActions}>
+            <TouchableOpacity style={styles.actionButton}>
+              <View style={[styles.actionIcon, { backgroundColor: '#EEF2FF' }]}>
+                <AntDesign name="calendar" size={24} color="#4F46E5" />
+              </View>
+              <Text style={styles.actionText}>Schedule</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton}>
+              <View style={[styles.actionIcon, { backgroundColor: '#FEF3C7' }]}>
+                <AntDesign name="notification" size={24} color="#D97706" />
+              </View>
+              <Text style={styles.actionText}>Notifications</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton}>
+              <View style={[styles.actionIcon, { backgroundColor: '#DCF5F0' }]}>
+                <AntDesign name="setting" size={24} color="#059669" />
+              </View>
+              <Text style={styles.actionText}>Settings</Text>
+            </TouchableOpacity>
+          </View>
+        </View> */}
+      </ScrollView>
+
       <TouchableOpacity
         style={styles.logoutButton}
         onPress={handleLogout}
       >
-        <Icon name="log-out-outline" size={20} color="white" style={styles.logoutIcon} />
-        <Text style={styles.logoutText}>Logout</Text>
+        <AntDesign name="logout" size={20} color="white" />
+        <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
     </View>
   );
@@ -176,6 +241,9 @@ const ClassesScreen = ({ classes, navigation, fetchClasses }: { classes: ClassDa
   const [isClassModalVisible, setIsClassModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [currentEditClass, setCurrentEditClass] = useState<ClassData | null>(null);
+  const [showKeyCodeModal, setShowKeyCodeModal] = useState(false);
+  const [currentKeyCode, setCurrentKeyCode] = useState<string>('');
+  const [loadingKeyCode, setLoadingKeyCode] = useState(false);
 
   const handleEditClass = (classItem: ClassData) => {
     setCurrentEditClass(classItem);
@@ -197,8 +265,6 @@ const ClassesScreen = ({ classes, navigation, fetchClasses }: { classes: ClassDa
               await axios.delete(`${env.apiUrl}/api/classes/${classId}`, {
                 headers: { Authorization: `Bearer ${token}` }
               });
-              
-              // Refresh the class list after deletion
               fetchClasses();
               Alert.alert('Success', 'Class deleted successfully');
             } catch (error) {
@@ -215,72 +281,129 @@ const ClassesScreen = ({ classes, navigation, fetchClasses }: { classes: ClassDa
     fetchClasses();
   };
 
+  const generateKeyCode = async (classId: number) => {
+    try {
+      setLoadingKeyCode(true);
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(
+        `${env.apiUrl}/api/classes/${classId}/generate-keycode`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      setCurrentKeyCode(response.data.keycode);
+      setShowKeyCodeModal(true);
+      fetchClasses(); // Refresh class list to get updated keycode
+    } catch (error) {
+      console.error('Error generating key code:', error);
+      Alert.alert('Error', 'Failed to generate key code');
+    } finally {
+      setLoadingKeyCode(false);
+    }
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Classes</Text>
+    <View style={styles.container}>
+      {/* Header Section */}
+      <View style={styles.classesHeader}>
+        <View style={styles.headerContent}>
+          <Text style={styles.classesHeaderTitle}>My Classes</Text>
+          <Text style={styles.classesSubtitle}>Manage your class schedule and attendance</Text>
+        </View>
         <TouchableOpacity
-          style={styles.addButton}
+          style={styles.addClassButton}
           onPress={() => setIsClassModalVisible(true)}
         >
-          <Text style={styles.addButtonText}>Add Class</Text>
+          <AntDesign name="plus" size={24} color="white" />
+          <Text style={styles.addClassButtonText}>Add Class</Text>
         </TouchableOpacity>
       </View>
 
-      {classes.map((classItem) => (
-        <TouchableOpacity 
-          key={classItem.id} 
-          style={styles.classCard}
-          onPress={() => navigation.navigate('AttendanceClass', { classData: classItem })}
-        >
-          <View style={styles.classHeader}>
-            <Text style={styles.subjectCode}>
-              {classItem.subjectCode}
-            </Text>
-            <View style={styles.scheduleContainer}>
-              <Icon name="time-outline" size={16} color="#6B7280" />
-              <Text style={styles.scheduleText}>
-                {classItem.schedule}
-              </Text>
+      {/* Classes List */}
+      <ScrollView 
+        style={styles.classesScrollContainer}
+        contentContainerStyle={styles.classesContent}
+      >
+        {classes.map((classItem) => (
+          <TouchableOpacity 
+            key={classItem.id} 
+            style={styles.enhancedClassCard}
+            onPress={() => navigation.navigate('AttendanceClass', { classData: classItem })}
+          >
+            <View style={styles.classCardHeader}>
+              <View style={styles.subjectCodeContainer}>
+                <Text style={styles.enhancedSubjectCode}>
+                  {classItem.subjectCode}
+                </Text>
+                <Text style={styles.enhancedDescription}>
+                  {classItem.subjectDescription}
+                </Text>
+              </View>
+              <View style={styles.enhancedScheduleContainer}>
+                <AntDesign name="clockcircleo" size={16} color="#6B7280" />
+                <Text style={styles.enhancedScheduleText}>
+                  {classItem.schedule}
+                </Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.classContent}>
-            <Text style={styles.description}>
-              {classItem.subjectDescription}
-            </Text>
-            <View style={styles.classActions}>
+
+            <View style={styles.classCardActions}>
               <TouchableOpacity 
-                style={styles.attendanceButton}
+                style={styles.enhancedAttendanceButton}
                 onPress={() => navigation.navigate('AttendanceClass', { classData: classItem })}
               >
-                <Icon name="calendar-outline" size={18} color="#4F46E5" />
-                <Text style={styles.attendanceText}>Take Attendance</Text>
+                <AntDesign name="calendar" size={20} color="#4F46E5" />
+                <Text style={styles.enhancedAttendanceText}>Take Attendance</Text>
               </TouchableOpacity>
-              
-              <View style={styles.managementButtons}>
+
+              <View style={styles.managementButtonsContainer}>
                 <TouchableOpacity 
-                  style={styles.editButton}
+                  style={[styles.managementButton, { backgroundColor: '#DCFCE7' }]}
                   onPress={(e) => {
-                    e.stopPropagation(); // Prevent navigation to attendance screen
+                    e.stopPropagation();
+                    generateKeyCode(classItem.id);
+                  }}
+                >
+                  <AntDesign name="key" size={20} color="#059669" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.managementButton, { backgroundColor: '#F3F4F6' }]}
+                  onPress={(e) => {
+                    e.stopPropagation();
                     handleEditClass(classItem);
                   }}
                 >
-                  <Icon name="create-outline" size={20} color="#4B5563" />
+                  <AntDesign name="edit" size={20} color="#4B5563" />
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.deleteButton}
+                  style={[styles.managementButton, { backgroundColor: '#FEE2E2' }]}
                   onPress={(e) => {
-                    e.stopPropagation(); // Prevent navigation to attendance screen
+                    e.stopPropagation();
                     handleDeleteClass(classItem.id);
                   }}
                 >
-                  <Icon name="trash-outline" size={20} color="#DC2626" />
+                  <AntDesign name="delete" size={20} color="#DC2626" />
                 </TouchableOpacity>
               </View>
             </View>
+          </TouchableOpacity>
+        ))}
+
+        {classes.length === 0 && (
+          <View style={styles.enhancedEmptyState}>
+            <View style={styles.emptyStateIconContainer}>
+              <AntDesign name="book" size={48} color="#4F46E5" />
+            </View>
+            <Text style={styles.enhancedEmptyStateTitle}>
+              No Classes Yet
+            </Text>
+            <Text style={styles.enhancedEmptyStateText}>
+              Start by adding your first class using the button above
+            </Text>
           </View>
-        </TouchableOpacity>
-      ))}
+        )}
+      </ScrollView>
 
       <Class
         visible={isClassModalVisible}
@@ -300,15 +423,34 @@ const ClassesScreen = ({ classes, navigation, fetchClasses }: { classes: ClassDa
         />
       )}
 
-      {classes.length === 0 && (
-        <View style={styles.emptyState}>
-          <Icon name="book-outline" size={48} color="#9CA3AF" />
-          <Text style={styles.emptyStateText}>
-            No classes added yet
-          </Text>
+      {/* Key Code Modal */}
+      <Modal
+        visible={showKeyCodeModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.keyCodeModalOverlay}>
+          <View style={styles.keyCodeModalContent}>
+            <View style={styles.keyCodeIconContainer}>
+              <AntDesign name="key" size={40} color="#059669" />
+            </View>
+            <Text style={styles.keyCodeTitle}>Class Key Code</Text>
+            <Text style={styles.keyCodeDescription}>
+              Share this code with your students to verify their attendance
+            </Text>
+            <View style={styles.keyCodeContainer}>
+              <Text style={styles.keyCode}>{currentKeyCode}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.closeKeyCodeButton}
+              onPress={() => setShowKeyCodeModal(false)}
+            >
+              <Text style={styles.closeKeyCodeText}>Close</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
-    </ScrollView>
+      </Modal>
+    </View>
   );
 };
 
@@ -317,7 +459,7 @@ const ReportsScreen = () => {
     <View style={[styles.container, styles.centerContent]}>
       <Text style={styles.headerTitle}>Generate Reports</Text>
       <View style={styles.emptyState}>
-        <Icon name="bar-chart-outline" size={48} color="#9CA3AF" />
+        <AntDesign name="barchart" size={48} color="#9CA3AF" />
         <Text style={styles.emptyStateText}>
           Reports feature coming soon
         </Text>
@@ -330,11 +472,64 @@ const TeacherDash = ({ navigation }: { navigation: any }) => {
   const [teacherData, setTeacherData] = useState<TeacherData | null>(null);
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<TeacherStats>({
+    totalClasses: 0,
+    totalStudents: 0,
+    averageAttendance: 0
+  });
 
   useEffect(() => {
     fetchTeacherData();
     fetchClasses();
   }, []);
+
+  const calculateStats = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+
+      // Set initial stats with classes length
+      let newStats = {
+        totalClasses: classes.length,
+        totalStudents: 0,
+        averageAttendance: 0
+      };
+
+      // Get total number of students enrolled in all classes
+      const studentsResponse = await axios.get(`${env.apiUrl}/api/teachers/total-students`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Students response:', studentsResponse.data);
+      newStats.totalStudents = studentsResponse.data.totalStudents || 0;
+
+      // Get average attendance percentage
+      const attendanceResponse = await axios.get(`${env.apiUrl}/api/teachers/average-attendance`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Attendance response:', attendanceResponse.data);
+      newStats.averageAttendance = Math.round(attendanceResponse.data.averageAttendance || 0);
+
+      console.log('Setting new stats:', newStats);
+      setStats(newStats);
+    } catch (error: any) {
+      console.error('Error calculating stats:', error.response?.data || error.message);
+      // Set default stats if there's an error
+      setStats({
+        totalClasses: classes.length,
+        totalStudents: 0,
+        averageAttendance: 0
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (classes.length > 0) {
+      calculateStats();
+    }
+  }, [classes]);
 
   const fetchTeacherData = async () => {
     try {
@@ -385,15 +580,11 @@ const TeacherDash = ({ navigation }: { navigation: any }) => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Classes') {
-            iconName = focused ? 'book' : 'book-outline';
-          } else if (route.name === 'Reports') {
-            iconName = focused ? 'bar-chart' : 'bar-chart-outline';
-          }
-          return <Icon name={iconName as string} size={size} color={color} />;
+          const iconName = 
+            route.name === 'Profile' ? 'user' :
+            route.name === 'Classes' ? 'book' :
+            'barchart';
+          return <AntDesign name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#111827',
         tabBarInactiveTintColor: '#6B7280',
@@ -408,6 +599,7 @@ const TeacherDash = ({ navigation }: { navigation: any }) => {
             teacherData={teacherData} 
             handleLogout={handleLogout}
             fetchTeacherData={fetchTeacherData}
+            stats={stats}
           />
         )}
       />
@@ -426,103 +618,223 @@ const TeacherDash = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-    paddingTop: 40,
+    backgroundColor: '#F9FAFB',
   },
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingVertical: 16,
+  profileHeader: {
+    backgroundColor: '#4F46E5',
+    paddingTop: 60,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  profileImageButton: {
-    marginBottom: 12,
+  profileImageSection: {
+    alignItems: 'center',
+  },
+  profileImageWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   profileImage: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: '#F3F4F6',
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
   },
   placeholderContainer: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: '#F3F4F6',
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+    backgroundColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   uploadText: {
     fontSize: 12,
     color: '#6B7280',
-    marginTop: 8,
+    marginTop: 4,
   },
   uploadingOverlay: {
-    position: 'absolute',
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  infoCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+  nameSection: {
+    alignItems: 'center',
+    marginTop: 16,
   },
-  infoTitle: {
+  userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 24,
-  },
-  infoSection: {
-    gap: 16,
-  },
-  infoItem: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    color: '#6B7280',
+    color: 'white',
     marginBottom: 4,
   },
-  value: {
-    fontSize: 18,
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  userRole: {
+    color: 'white',
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 20,
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: -25,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#111827',
   },
-  logoutButton: {
-    backgroundColor: '#DC2626',
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: '#E5E7EB',
+    alignSelf: 'center',
+  },
+  scrollContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  infoCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 8,
-    marginHorizontal: 24,
-    marginBottom: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  infoContent: {
+    gap: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  infoDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 12,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  actionButton: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  actionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  actionText: {
+    fontSize: 12,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoutIcon: {
-    marginRight: 8,
+    backgroundColor: '#DC2626',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   logoutText: {
     color: 'white',
-    textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
   },
   header: {
     flexDirection: 'row',
@@ -660,56 +972,230 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
-  userName: {
+  classesHeader: {
+    backgroundColor: '#4F46E5',
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  headerContent: {
+    marginBottom: 20,
+  },
+  classesHeaderTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  classesSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  addClassButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  addClassButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  classesScrollContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  classesContent: {
+    padding: 20,
+  },
+  enhancedClassCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  classCardHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  subjectCodeContainer: {
+    marginBottom: 12,
+  },
+  enhancedSubjectCode: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#111827',
-    marginTop: 12,
-  },
-  userRole: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  infoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  infoTextContainer: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#6B7280',
     marginBottom: 4,
   },
-  infoValue: {
+  enhancedDescription: {
     fontSize: 16,
-    color: '#111827',
-    fontWeight: '500',
+    color: '#4B5563',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 8,
+  enhancedScheduleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
-  actionButtonText: {
+  enhancedScheduleText: {
     fontSize: 14,
     color: '#4B5563',
-    marginLeft: 4,
+    marginLeft: 8,
+    fontWeight: '500',
   },
-  deleteText: {
-    color: '#DC2626',
+  classCardActions: {
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    gap: 12,
+  },
+  enhancedAttendanceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  managementButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  managementButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  enhancedAttendanceText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4F46E5',
+    marginLeft: 8,
+  },
+  enhancedEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 40,
+  },
+  emptyStateIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  enhancedEmptyStateTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  enhancedEmptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  keyCodeModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  keyCodeModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  keyCodeIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#DCFCE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  keyCodeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  keyCodeDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  keyCodeContainer: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  keyCode: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#111827',
+    letterSpacing: 2,
+  },
+  closeKeyCodeButton: {
+    backgroundColor: '#111827',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    width: '100%',
+  },
+  closeKeyCodeText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

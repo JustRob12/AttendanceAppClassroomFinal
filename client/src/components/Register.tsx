@@ -15,7 +15,7 @@ import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { StackNavigationProp } from '@react-navigation/stack';
 import env from '../config/env';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { AntDesign } from '@expo/vector-icons';
 
 type RootStackParamList = {
   Register: undefined;
@@ -115,7 +115,7 @@ const Register: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="arrow-back" size={24} color="white" />
+          <AntDesign name="arrowleft" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Account</Text>
         <Text style={styles.headerSubtitle}>Please fill in the registration form</Text>
@@ -221,8 +221,8 @@ const Register: React.FC<Props> = ({ navigation }) => {
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
               >
-                <Icon 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                <AntDesign 
+                  name={showPassword ? "eyeo" : "eye"} 
                   size={24} 
                   color="#6B7280" 
                 />
