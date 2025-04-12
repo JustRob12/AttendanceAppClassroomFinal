@@ -9,12 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  StyleSheet
+  StyleSheet,
+  SafeAreaView
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import axios from 'axios';
 import { StackNavigationProp } from '@react-navigation/stack';
-import env from '../config/env';
+import axiosInstance from '../config/axios';
 import { AntDesign } from '@expo/vector-icons';
 
 type RootStackParamList = {
@@ -29,7 +29,7 @@ interface Props {
 }
 
 const Register: React.FC<Props> = ({ navigation }) => {
-  const [userType, setUserType] = useState<'student' | 'teacher'>('student');
+  const [userType, setUserType] = useState<'student' | 'teacher' | 'admin'>('student');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -71,8 +71,10 @@ const Register: React.FC<Props> = ({ navigation }) => {
       }
 
       const endpoint = userType === 'student' 
-        ? `${env.apiUrl}/api/students/register`
-        : `${env.apiUrl}/api/teachers/register`;
+        ? '/api/students/register'
+        : userType === 'teacher'
+        ? '/api/teachers/register'
+        : '/api/admins/register';
 
       const registrationData = userType === 'student' 
         ? {
@@ -83,15 +85,22 @@ const Register: React.FC<Props> = ({ navigation }) => {
             studentId: formData.studentId,
             course: formData.course
           }
-        : {
+        : userType === 'teacher'
+        ? {
             firstName: formData.firstName,
             lastName: formData.lastName,
             email: formData.email,
             password: formData.password,
             phoneNumber: formData.phoneNumber
+          }
+        : {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password
           };
 
-      const response = await axios.post(endpoint, registrationData);
+      const response = await axiosInstance.post(endpoint, registrationData);
 
       if (response.data.success) {
         Alert.alert(
@@ -109,23 +118,22 @@ const Register: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <AntDesign name="arrowleft" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Account</Text>
-        <Text style={styles.headerSubtitle}>Please fill in the registration form</Text>
-      </View>
-
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.formContainer}
+        style={styles.container}
       >
         <ScrollView style={styles.scrollView}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>AttScan</Text>
+            <Text style={styles.subtitle}>Tap, scan, you're all set – AttScan won't let you forget!</Text>
+          </View>
+
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>Create Account</Text>
+            <Text style={styles.formSubtitle}>Please fill in the registration form</Text>
+          </View>
+
           <View style={styles.pickerContainer}>
             <Text style={styles.label}>Register as</Text>
             <View style={styles.picker}>
@@ -136,6 +144,7 @@ const Register: React.FC<Props> = ({ navigation }) => {
               >
                 <Picker.Item label="Student" value="student" />
                 <Picker.Item label="Teacher" value="teacher" />
+                <Picker.Item label="Admin" value="admin" />
               </Picker>
             </View>
           </View>
@@ -182,7 +191,7 @@ const Register: React.FC<Props> = ({ navigation }) => {
                 />
               </View>
             </View>
-          ) : (
+          ) : userType === 'teacher' ? (
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Phone Number</Text>
               <TextInput
@@ -193,7 +202,7 @@ const Register: React.FC<Props> = ({ navigation }) => {
                 keyboardType="phone-pad"
               />
             </View>
-          )}
+          ) : null}
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
@@ -265,43 +274,53 @@ const Register: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   container: {
     flex: 1,
     backgroundColor: 'white',
   },
-  header: {
-    backgroundColor: '#111827',
-    padding: 16,
-    paddingTop: 48,
-    borderBottomRightRadius: 24,
-    borderBottomLeftRadius: 24,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    marginBottom: 8,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#9CA3AF',
-  },
-  formContainer: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
-    padding: 10,
+    padding: 24,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 30,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  formHeader: {
+    marginBottom: 24,
+  },
+  formTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 6,
+  },
+  formSubtitle: {
+    fontSize: 16,
+    color: '#666',
   },
   pickerContainer: {
     marginBottom: 2,
@@ -309,10 +328,9 @@ const styles = StyleSheet.create({
   },
   picker: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    
-    borderRadius: 1,
-    backgroundColor: '#F9FAFB',
+    borderColor: '#000',
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
   row: {
     flexDirection: 'row',
@@ -328,24 +346,24 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#374151',
+    color: '#000',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#000',
     borderRadius: 8,
-    padding: 5,
+    padding: 12,
     fontSize: 16,
   },
   passwordContainer: {
     position: 'relative',
   },
   passwordInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#000',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -359,10 +377,10 @@ const styles = StyleSheet.create({
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#000',
   },
   registerButton: {
-    backgroundColor: '#111827',
+    backgroundColor: '#000',
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
@@ -377,12 +395,12 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   signInText: {
-    color: '#6B7280',
+    color: '#666',
     textAlign: 'center',
     fontSize: 14,
   },
   signInLink: {
-    color: '#111827',
+    color: '#000',
     fontWeight: '600',
   },
 });

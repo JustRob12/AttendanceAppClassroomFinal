@@ -14,6 +14,9 @@ import SignIn from './src/components/SignIn';
 import Register from './src/components/Register';
 import TeacherDash from './src/components/TeacherDash';
 import StudentDash from './src/components/StudentDash';
+import AdminTabs from './src/navigation/AdminTabs';
+import AdminReport from './src/components/AdminReport';
+import ProfileAdmin from './src/components/ProfileAdmin';
 import AttendanceClass from './src/components/AttendanceClass';
 
 // Define interfaces
@@ -30,6 +33,9 @@ export type RootStackParamList = {
   Register: undefined;
   TeacherDash: undefined;
   StudentDash: undefined;
+  AdminTabs: undefined;
+  AdminReport: undefined;
+  ProfileAdmin: undefined;
   AttendanceClass: { classData: ClassData };
 };
 
@@ -93,10 +99,7 @@ const App: React.FC = () => {
               component={TeacherDash}
               options={{
                 title: 'Teacher Dashboard',
-                headerShown: false,
-                // Prevent going back to login screen
-                headerLeft: () => null,
-                gestureEnabled: false
+                headerShown: false
               }}
             />
             <Stack.Screen 
@@ -104,9 +107,31 @@ const App: React.FC = () => {
               component={StudentDash}
               options={{
                 title: 'Student Dashboard',
-                headerShown: false,
-                headerLeft: () => null,
-                gestureEnabled: false
+                headerShown: false
+              }}
+            />
+            <Stack.Screen 
+              name="AdminTabs" 
+              component={AdminTabs}
+              options={{
+                title: 'Admin Dashboard',
+                headerShown: false
+              }}
+            />
+            <Stack.Screen 
+              name="AdminReport" 
+              component={AdminReport}
+              options={{
+                title: 'Admin Report',
+                headerShown: false
+              }}
+            />
+            <Stack.Screen 
+              name="ProfileAdmin" 
+              component={ProfileAdmin}
+              options={{
+                title: 'Admin Profile',
+                headerShown: false
               }}
             />
             <Stack.Screen 

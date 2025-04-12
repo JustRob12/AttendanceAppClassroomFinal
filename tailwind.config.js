@@ -4,4 +4,16 @@ module.exports = {
     extend: {},
   },
   plugins: [],
+  compiler: {
+    type: 'local',
+    mode: 'jit',
+    web: {
+      enabled: true,
+      compiler: {
+        type: 'local',
+        mode: 'jit',
+        remote: false
+      }
+    }
+  }
 } 

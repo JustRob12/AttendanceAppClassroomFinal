@@ -8,7 +8,9 @@ import {
   Modal,
   FlatList,
   StyleSheet,
-  Image
+  Image,
+  RefreshControl,
+  ActivityIndicator
 } from 'react-native';
 import { CameraView, BarcodeScanningResult, Camera } from 'expo-camera';
 import axios from 'axios';
@@ -82,13 +84,47 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
   const [scannedStudent, setScannedStudent] = useState<StudentData | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchEnrolledStudents();
-    fetchAvailableStudents();
-    fetchTodayAttendance();
-    checkPermissions();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await Promise.all([
+        fetchEnrolledStudents(),
+        fetchAvailableStudents(),
+        fetchTodayAttendance(),
+        checkPermissions()
+      ]);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Failed to load class data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchEnrolledStudents(),
+        fetchAvailableStudents(),
+        fetchTodayAttendance()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing:', error);
+      setError('Failed to refresh data. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const checkPermissions = async () => {
     try {
@@ -112,7 +148,7 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
       setEnrolledStudents(response.data);
     } catch (error) {
       console.error('Error fetching enrolled students:', error);
-      Alert.alert('Error', 'Failed to fetch enrolled students');
+      throw error;
     }
   };
 
@@ -128,6 +164,7 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
       setAvailableStudents(response.data);
     } catch (error) {
       console.error('Error fetching available students:', error);
+      throw error;
     }
   };
 
@@ -335,6 +372,62 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
     </View>
   );
 
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.enhancedHeader}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity 
+              style={styles.enhancedBackButton}
+              onPress={() => navigation.goBack()}
+            >
+              <AntDesign name="arrowleft" size={24} color="white" />
+            </TouchableOpacity>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.enhancedHeaderTitle}>{classData.subjectCode}</Text>
+              <Text style={styles.enhancedHeaderSubtitle}>{classData.schedule}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+          <Text style={styles.loadingText}>Loading class data...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.enhancedHeader}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity 
+              style={styles.enhancedBackButton}
+              onPress={() => navigation.goBack()}
+            >
+              <AntDesign name="arrowleft" size={24} color="white" />
+            </TouchableOpacity>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.enhancedHeaderTitle}>{classData.subjectCode}</Text>
+              <Text style={styles.enhancedHeaderSubtitle}>{classData.schedule}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <AntDesign name="exclamationcircleo" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={loadData}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.enhancedHeader}>
@@ -356,13 +449,13 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       <View style={styles.enhancedActions}>
-        {/* <TouchableOpacity 
+        <TouchableOpacity 
           style={styles.enhancedActionButton}
           onPress={() => setIsEnrollModalVisible(true)}
         >
           <AntDesign name="adduser" size={20} color="white" />
           <Text style={styles.enhancedActionButtonText}>Add Students</Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
         <TouchableOpacity 
           style={styles.enhancedActionButton}
           onPress={() => setScannerVisible(true)}
@@ -372,7 +465,17 @@ const AttendanceClass: React.FC<Props> = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.enhancedContent}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#4F46E5']}
+            tintColor="#4F46E5"
+          />
+        }
+      >
         <Text style={styles.enhancedSectionTitle}>Enrolled Students</Text>
         {enrolledStudents.length > 0 ? (
           enrolledStudents.map(renderStudentCard)
@@ -615,7 +718,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  enhancedContent: {
+  scrollView: {
     flex: 1,
     padding: 24,
   },
@@ -966,6 +1069,39 @@ const styles = StyleSheet.create({
   },
   cancelModalText: {
     color: '#111827',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#4F46E5',
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#111827',
+    padding: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '500',
   },

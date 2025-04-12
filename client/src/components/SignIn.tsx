@@ -6,34 +6,36 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
-  ActivityIndicator
+  ActivityIndicator,
+  SafeAreaView,
+  Image
 } from 'react-native';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
-import env from '../config/env';
+import { useNavigation } from '@react-navigation/native';
+import axiosInstance from '../config/axios';
 import LoadingScreen from './LoadingScreen';
+import { AntDesign } from '@expo/vector-icons';
 
 type RootStackParamList = {
   SignIn: undefined;
   Register: undefined;
   TeacherDash: undefined;
   StudentDash: undefined;
+  AdminTabs: undefined;
 };
 
 type SignInScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignIn'>;
 
-interface Props {
-  navigation: SignInScreenNavigationProp;
-}
-
-const SignIn: React.FC<Props> = ({ navigation }) => {
+const SignIn: React.FC = () => {
+  const navigation = useNavigation<SignInScreenNavigationProp>();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setTimeout(() => setIsReady(true), 100);
@@ -46,30 +48,50 @@ const SignIn: React.FC<Props> = ({ navigation }) => {
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
-      // Try teacher login first
+      // Try admin login first
       try {
-        const teacherResponse = await axios.post(`${env.apiUrl}/api/teachers/login`, formData);
-        if (teacherResponse.data.token) {
-          await AsyncStorage.setItem('token', teacherResponse.data.token);
-          navigation.navigate('TeacherDash');
+        const adminResponse = await axiosInstance.post('/api/admins/login', formData);
+        if (adminResponse.data && adminResponse.data.token) {
+          await AsyncStorage.setItem('token', adminResponse.data.token);
+          navigation.navigate('AdminTabs');
           return;
         }
       } catch (error) {
-        // If teacher login fails, try student login
+        // If admin login fails, try teacher login
         try {
-          const studentResponse = await axios.post(`${env.apiUrl}/api/students/login`, formData);
-          if (studentResponse.data.token) {
-            await AsyncStorage.setItem('token', studentResponse.data.token);
-            navigation.navigate('StudentDash');
+          const teacherResponse = await axiosInstance.post('/api/teachers/login', formData);
+          if (teacherResponse.data && teacherResponse.data.token) {
+            await AsyncStorage.setItem('token', teacherResponse.data.token);
+            navigation.navigate('TeacherDash');
             return;
           }
-        } catch (studentError) {
-          throw studentError;
+        } catch (error) {
+          // If teacher login fails, try student login
+          try {
+            const studentResponse = await axiosInstance.post('/api/students/login', formData);
+            if (studentResponse.data && studentResponse.data.token) {
+              await AsyncStorage.setItem('token', studentResponse.data.token);
+              navigation.navigate('StudentDash');
+              return;
+            }
+          } catch (studentError) {
+            // Only show error if all login attempts fail
+            Alert.alert(
+              'Error',
+              'Invalid credentials. Please check your email and password.'
+            );
+          }
         }
       }
     } catch (err: any) {
-      console.error('Login error:', err.response?.data || err.message);
-      Alert.alert('Error', err.response?.data?.message || 'Login failed');
+      // Only log unexpected errors
+      if (err.message !== 'Invalid credentials') {
+        console.error('Unexpected login error:', err);
+        Alert.alert(
+          'Error',
+          'An unexpected error occurred. Please try again.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -80,113 +102,162 @@ const SignIn: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>Log in</Text>
-        <Text style={styles.subtitle}>Login to start using attendance</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>AttScan</Text>
+          <Text style={styles.subtitle}>Tap, scan, you're all set – AttScan won't let you forget!</Text>
+        </View>
+
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="#9CA3AF"
+                value={formData.email}
+                onChangeText={(text: string) => setFormData({ ...formData, email: text })}
+              />
+              <AntDesign name="mail" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your password"
+                secureTextEntry={!showPassword}
+                placeholderTextColor="#9CA3AF"
+                value={formData.password}
+                onChangeText={(text: string) => setFormData({ ...formData, password: text })}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.inputIcon}
+              >
+                <AntDesign 
+                  name={showPassword ? "eye" : "eyeo"} 
+                  size={20} 
+                  color="#9CA3AF" 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.loginButton}
+            onPress={handleSubmit}
+          >
+            <Text style={styles.loginButtonText}>Sign In</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.forgotPasswordButton}
+            onPress={() => {/* Handle forgot password */}}
+          >
+            {/* <Text style={styles.forgotPasswordText}>Forgot Password?</Text> */}
+          </TouchableOpacity>
+        </View>
       </View>
-
-      <View style={styles.formContainer}>
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={formData.email}
-          onChangeText={(text: string) => setFormData({ ...formData, email: text })}
-        />
-
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter password"
-          secureTextEntry
-          value={formData.password}
-          onChangeText={(text: string) => setFormData({ ...formData, password: text })}
-        />
-
-        <TouchableOpacity 
-          style={styles.loginButton}
-          onPress={handleSubmit}
-        >
-          <Text style={styles.loginButtonText}>Log in</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.registerButton}
-          onPress={() => navigation.navigate('Register')}
-        >
-          <Text style={styles.registerText}>
-            Don't have an account? <Text style={styles.registerLink}>Sign Up</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
-    padding: 20,
+    backgroundColor: '#F9FAFB',
+  },
+  content: {
+    flex: 1,
+    padding: 24,
     justifyContent: 'center',
   },
-  headerContainer: {
-    marginBottom: 32,
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
   },
   title: {
-    fontSize: 32,
+    fontSize: 42,
     fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
+    color: '#4F46E5',
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 22,
   },
   formContainer: {
-    width: '100%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  inputGroup: {
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: '600',
+    color: '#374151',
     marginBottom: 8,
   },
+  inputWrapper: {
+    position: 'relative',
+  },
   input: {
-    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 16,
+    paddingLeft: 48,
     fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
   },
   loginButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#4F46E5',
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   loginButtonText: {
     color: 'white',
-    textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
   },
-  registerButton: {
-    padding: 8,
+  forgotPasswordButton: {
+    marginTop: 16,
+    alignItems: 'center',
   },
-  registerText: {
-    color: '#666',
-    textAlign: 'center',
+  forgotPasswordText: {
+    color: '#4F46E5',
     fontSize: 14,
-  },
-  registerLink: {
-    color: '#000',
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });
 

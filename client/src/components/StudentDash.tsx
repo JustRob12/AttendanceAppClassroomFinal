@@ -219,66 +219,124 @@ const ProfileScreen = ({ studentData, handleLogout, fetchStudentData }: ProfileS
 
 // QR Code Screen Component
 const QRCodeScreen = ({ studentData }: QRCodeScreenProps) => {
+  const [showQR, setShowQR] = useState(false);
+  const [qrValue, setQrValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const qrRef = React.useRef<ViewShot>(null);
+
+  useEffect(() => {
+    if (studentData) {
+      const qrData = {
+        studentId: studentData.studentId,
+        firstName: studentData.firstName,
+        lastName: studentData.lastName,
+        course: studentData.course
+      };
+      setQrValue(JSON.stringify(qrData));
+      setIsLoading(false);
+    }
+  }, [studentData]);
+
+  const handleSaveQR = async () => {
+    if (!qrRef.current) return;
+
+    try {
+      setSaving(true);
+      const uri = await captureRef(qrRef, {
+        format: 'png',
+        quality: 1,
+      });
+
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant permission to save the QR code');
+        return;
+      }
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert('Success', 'QR code saved to gallery');
+    } catch (error) {
+      console.error('Error saving QR code:', error);
+      Alert.alert('Error', 'Failed to save QR code');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!studentData?.profilePicture) {
+    return (
+      <View style={styles.qrContainer}>
+        <Text style={styles.qrMessage}>
+          Please upload your profile picture first to access your QR code.
+        </Text>
+        <Text style={styles.qrSubMessage}>
+          Go to Profile tab to upload your picture.
+        </Text>
+      </View>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View style={styles.qrContainer}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.profileHeader}>
-        <View style={styles.profileImageSection}>
-          <View style={styles.profileImageWrapper}>
-            {studentData?.profilePicture ? (
-              <Image
-                source={{ uri: studentData.profilePicture }}
-                style={styles.profileImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.placeholderContainer}>
-                <AntDesign name="user" size={50} color="#9CA3AF" />
-              </View>
-            )}
+    <View style={styles.qrContainer}>
+      <View style={styles.qrHeader}>
+        <View style={styles.qrProfileSection}>
+          <View style={styles.qrProfileImageWrapper}>
+            <Image
+              source={{ uri: studentData.profilePicture }}
+              style={styles.qrProfileImage}
+              resizeMode="cover"
+            />
           </View>
-          <View style={styles.nameSection}>
-            <Text style={styles.userName}>
-              {studentData?.firstName} {studentData?.lastName}
+          <View style={styles.qrNameSection}>
+            <Text style={styles.qrUserName}>
+              {studentData.firstName} {studentData.lastName}
             </Text>
-            <View style={styles.badgeContainer}>
-              <Text style={styles.userRole}>{studentData?.studentId}</Text>
-            </View>
-            <Text style={[styles.userRole, { marginTop: 4 }]}>
-              {studentData?.course}
-            </Text>
+            <Text style={styles.qrUserId}>{studentData.studentId}</Text>
+            <Text style={styles.qrUserCourse}>{studentData.course}</Text>
           </View>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContainer}>
-        <View style={styles.infoCard}>
-          <View style={styles.infoHeader}>
-            <Text style={styles.infoTitle}>My QR Code</Text>
-            <AntDesign name="qrcode" size={24} color="#4F46E5" />
-          </View>
-          <View style={[styles.infoContent, { alignItems: 'center' }]}>
-            {studentData && (
-              <QRCode
-                value={JSON.stringify({
-                  studentId: studentData.studentId,
-                  course: studentData.course,
-                  name: `${studentData.firstName} ${studentData.lastName}`
-                })}
-                size={250}
-                color="#111827"
-                backgroundColor="transparent"
-              />
-            )}
-          </View>
-        </View>
-
-        <View style={[styles.infoCard, { alignItems: 'center' }]}>
-          <AntDesign name="camera" size={24} color="#6B7280" />
-          <Text style={[styles.infoValue, { marginTop: 8, color: '#6B7280' }]}>
-            Take a screenshot of your QR code to save it
+      <View style={styles.qrCodeSection}>
+        <View style={styles.warningContainer}>
+          <AntDesign name="warning" size={24} color="#DC2626" />
+          <Text style={styles.warningText}>
+            Do not share your QR code with others
           </Text>
         </View>
-      </ScrollView>
+
+        <ViewShot ref={qrRef} style={styles.qrCodeContainer}>
+          {qrValue && (
+            <QRCode
+              value={qrValue}
+              size={200}
+              backgroundColor="white"
+              color="black"
+            />
+          )}
+        </ViewShot>
+
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSaveQR}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save QR Code</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -341,13 +399,13 @@ const SubjectsScreen = ({ classes, fetchClasses }: SubjectsScreenProps) => {
             {classes.length} {classes.length === 1 ? 'Subject' : 'Subjects'} Enrolled
           </Text>
         </View>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.addClassButton}
           onPress={() => setShowEnrollModal(true)}
         >
           <AntDesign name="plus" size={24} color="white" />
           <Text style={styles.addClassButtonText}>Enroll Subject</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Classes List */}
@@ -881,6 +939,117 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  qrContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  qrHeader: {
+    backgroundColor: '#4F46E5',
+    paddingTop: 40,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  qrProfileSection: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  qrProfileImageWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    marginBottom: 16,
+  },
+  qrProfileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  qrNameSection: {
+    alignItems: 'center',
+  },
+  qrUserName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  qrUserId: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 2,
+  },
+  qrUserCourse: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  qrCodeSection: {
+    flex: 1,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#DC2626',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  qrCodeContainer: {
+    marginBottom: 20,
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  saveButton: {
+    backgroundColor: '#4F46E5',
+    padding: 12,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  qrMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  qrSubMessage: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });
 

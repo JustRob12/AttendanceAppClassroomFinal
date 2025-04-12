@@ -365,15 +365,7 @@ const ClassesScreen = ({ classes, navigation, fetchClasses }: { classes: ClassDa
                     generateKeyCode(classItem.id);
                   }}
                 >
-                  <AntDesign name="key" size={20} color="#059669" />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.managementButton, { backgroundColor: '#F3F4F6' }]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleEditClass(classItem);
-                  }}
-                >
+                 
                   <AntDesign name="edit" size={20} color="#4B5563" />
                 </TouchableOpacity>
                 <TouchableOpacity 

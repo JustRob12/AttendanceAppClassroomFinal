@@ -35,36 +35,32 @@ const teacherController = {
     try {
       const { email, password } = req.body;
       
-      const query = 'SELECT * FROM teachers WHERE email = ?';
-      db.query(query, [email], async (err, results) => {
-        if (err) {
-          return res.status(500).json({ message: 'Server error' });
-        }
-        
-        if (results.length === 0) {
-          return res.status(401).json({ message: 'Invalid credentials' });
-        }
-        
-        const teacher = results[0];
-        const isValidPassword = await bcrypt.compare(password, teacher.password);
-        
-        if (!isValidPassword) {
-          return res.status(401).json({ message: 'Invalid credentials' });
-        }
-        
-        const token = jwt.sign(
-          { 
-            id: teacher.id, 
-            email: teacher.email,
-            role: 'teacher'
-          },
-          JWT_SECRET,
-          { expiresIn: '1h' }
-        );
-        
-        res.json({ token });
-      });
+      const [teachers] = await db.promise().query('SELECT * FROM teachers WHERE email = ?', [email]);
+      
+      if (teachers.length === 0) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      const teacher = teachers[0];
+      const isValidPassword = await bcrypt.compare(password, teacher.password);
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      const token = jwt.sign(
+        { 
+          id: teacher.id, 
+          email: teacher.email,
+          role: 'teacher'
+        },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+      
+      res.json({ token });
     } catch (error) {
+      console.error('Login error:', error);
       res.status(500).json({ message: 'Server error' });
     }
   },
