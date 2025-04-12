@@ -19,6 +19,7 @@ import { AntDesign } from '@expo/vector-icons';
 import Class from './Class';
 import LoadingScreen from './LoadingScreen';
 import * as ImagePicker from 'expo-image-picker';
+import TeacherReport from './TeacherReport';
 
 type RootStackParamList = {
   TeacherDash: undefined;
@@ -601,7 +602,7 @@ const TeacherDash = ({ navigation }: { navigation: any }) => {
       />
       <Tab.Screen 
         name="Reports" 
-        component={ReportsScreen}
+        component={TeacherReport}
       />
     </Tab.Navigator>
   );

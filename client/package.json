@@ -25,6 +25,7 @@
     "expo-image-picker": "^16.0.6",
     "expo-mail-composer": "^14.0.2",
     "expo-media-library": "~17.0.6",
+    "expo-sharing": "^13.0.1",
     "expo-speech": "^13.0.1",
     "expo-status-bar": "~2.0.1",
     "multer": "^1.4.5-lts.1",

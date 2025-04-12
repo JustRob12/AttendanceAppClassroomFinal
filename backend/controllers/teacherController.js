@@ -165,6 +165,91 @@ const teacherController = {
       console.error('Server error:', error);
       res.status(500).json({ message: 'Server error' });
     }
+  },
+
+  getAttendanceReport: async (req, res) => {
+    try {
+      // First, get all classes for the teacher
+      const classesQuery = `
+        SELECT DISTINCT
+          c.id as classId,
+          c.subjectCode,
+          c.subjectDescription,
+          c.schedule,
+          (
+            SELECT COUNT(DISTINCT ce2.studentId)
+            FROM class_enrollments ce2
+            WHERE ce2.classId = c.id
+          ) as totalEnrolled
+        FROM classes c
+        WHERE c.teacherId = ?
+      `;
+
+      const [classes] = await db.promise().query(classesQuery, [req.user.id]);
+      
+      // For each class, get the attendance records
+      const groupedResults = {};
+      
+      for (const classInfo of classes) {
+        const attendanceQuery = `
+          SELECT 
+            DATE_FORMAT(a.date, '%Y-%m-%d') as date,
+            TIME_FORMAT(a.time, '%H:%i:%s') as time,
+            COUNT(CASE WHEN a.status = 'present' THEN 1 END) as presentStudents,
+            GROUP_CONCAT(
+              CASE 
+                WHEN a.status = 'present' THEN
+                  CONCAT(s.studentId, ':', s.firstName, ' ', s.lastName)
+              END
+            ) as presentStudents
+          FROM attendance a
+          LEFT JOIN students s ON a.studentId = s.id
+          WHERE a.classId = ?
+          GROUP BY a.date, a.time
+          ORDER BY a.date DESC, a.time DESC
+        `;
+
+        const [attendanceRecords] = await db.promise().query(attendanceQuery, [classInfo.classId]);
+
+        const processedRecords = attendanceRecords.map(record => {
+          let presentStudentDetails = [];
+          if (record.presentStudents) {
+            presentStudentDetails = record.presentStudents
+              .split(',')
+              .filter(Boolean)
+              .map(student => {
+                const [studentId, name] = student.split(':');
+                return { studentId, name };
+              });
+          }
+
+          return {
+            date: record.date,
+            time: record.time,
+            totalStudents: classInfo.totalEnrolled,
+            presentStudents: record.presentStudents || 0,
+            attendancePercentage: classInfo.totalEnrolled 
+              ? Math.round((record.presentStudents / classInfo.totalEnrolled) * 100) 
+              : 0,
+            presentStudentDetails
+          };
+        });
+
+        groupedResults[classInfo.subjectCode] = {
+          subjectCode: classInfo.subjectCode,
+          subjectDescription: classInfo.subjectDescription,
+          schedule: classInfo.schedule,
+          totalStudents: classInfo.totalEnrolled,
+          attendanceRecords: processedRecords
+        };
+      }
+
+      console.log('Processed results:', JSON.stringify(groupedResults, null, 2));
+      res.json(Object.values(groupedResults));
+    } catch (error) {
+      console.error('Error getting attendance report:', error);
+      res.status(500).json({ message: 'Error getting attendance report' });
+    }
   }
 };
 

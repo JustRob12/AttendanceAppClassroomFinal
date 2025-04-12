@@ -18,5 +18,6 @@ router.post('/profile-picture', teacherController.uploadProfilePicture);
 // Stats routes
 router.get('/total-students', teacherController.getTotalStudents);
 router.get('/average-attendance', teacherController.getAverageAttendance);
+router.get('/attendance-report', teacherController.getAttendanceReport);
 
 module.exports = router; 
