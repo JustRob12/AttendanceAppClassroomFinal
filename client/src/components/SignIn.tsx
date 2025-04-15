@@ -48,15 +48,19 @@ const SignIn: React.FC = () => {
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
-      // Try admin login first
       try {
+        // Try admin login first
         const adminResponse = await axiosInstance.post('/api/admins/login', formData);
         if (adminResponse.data && adminResponse.data.token) {
           await AsyncStorage.setItem('token', adminResponse.data.token);
           navigation.navigate('AdminTabs');
           return;
         }
-      } catch (error) {
+      } catch (error: any) {
+        // If it's a network error, throw it to the outer catch block
+        if (error.message === 'Network Error') {
+          throw error;
+        }
         // If admin login fails, try teacher login
         try {
           const teacherResponse = await axiosInstance.post('/api/teachers/login', formData);
@@ -65,7 +69,11 @@ const SignIn: React.FC = () => {
             navigation.navigate('TeacherDash');
             return;
           }
-        } catch (error) {
+        } catch (error: any) {
+          // If it's a network error, throw it to the outer catch block
+          if (error.message === 'Network Error') {
+            throw error;
+          }
           // If teacher login fails, try student login
           try {
             const studentResponse = await axiosInstance.post('/api/students/login', formData);
@@ -74,7 +82,11 @@ const SignIn: React.FC = () => {
               navigation.navigate('StudentDash');
               return;
             }
-          } catch (studentError) {
+          } catch (studentError: any) {
+            // If it's a network error, throw it to the outer catch block
+            if (studentError.message === 'Network Error') {
+              throw studentError;
+            }
             // Only show error if all login attempts fail
             Alert.alert(
               'Error',
@@ -84,14 +96,12 @@ const SignIn: React.FC = () => {
         }
       }
     } catch (err: any) {
-      // Only log unexpected errors
-      if (err.message !== 'Invalid credentials') {
-        console.error('Unexpected login error:', err);
-        Alert.alert(
-          'Error',
-          'An unexpected error occurred. Please try again.'
-        );
-      }
+      // Handle unexpected errors (network issues, etc.)
+      console.error('Unexpected login error:', err);
+      Alert.alert(
+        'Error',
+        'An unexpected error occurred. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
