@@ -18,6 +18,7 @@ import AdminTabs from './src/navigation/AdminTabs';
 import AdminReport from './src/components/AdminReport';
 import ProfileAdmin from './src/components/ProfileAdmin';
 import AttendanceClass from './src/components/AttendanceClass';
+import TeacherReport from './src/components/TeacherReport';
 
 // Define interfaces
 interface ClassData {
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   AdminTabs: undefined;
   AdminReport: undefined;
   ProfileAdmin: undefined;
+  TeacherReport: undefined;
   AttendanceClass: { classData: ClassData };
 };
 
@@ -131,6 +133,14 @@ const App: React.FC = () => {
               component={ProfileAdmin}
               options={{
                 title: 'Admin Profile',
+                headerShown: false
+              }}
+            />
+            <Stack.Screen 
+              name="TeacherReport" 
+              component={TeacherReport}
+              options={{
+                title: 'Teacher Report',
                 headerShown: false
               }}
             />
