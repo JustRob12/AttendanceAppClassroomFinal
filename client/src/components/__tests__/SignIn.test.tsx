@@ -5,6 +5,20 @@ import axiosInstance from '../../config/axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 
+/**
+ * Test Suite for SignIn Component
+ * 
+ * Verifies the authentication process for all user types:
+ * - Admin login
+ * - Teacher login
+ * - Student login
+ * - Error handling for invalid credentials
+ * - Loading states
+ * - Navigation after successful login
+ * 
+ * Tests both successful and failed login attempts for each user type
+ */
+
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),

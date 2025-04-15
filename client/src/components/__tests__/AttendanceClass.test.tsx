@@ -1,3 +1,17 @@
+/**
+ * Test Suite for AttendanceClass Component
+ * 
+ * Tests the attendance management functionality:
+ * - Student list display
+ * - Marking attendance (present/absent)
+ * - Student enrollment
+ * - Loading states
+ * - Error handling
+ * - Camera permissions for QR scanning
+ * 
+ * Uses mock data for class information and student lists
+ * Includes mocks for camera and audio functionality
+ */
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import AttendanceClass from '../AttendanceClass';

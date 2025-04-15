@@ -21,6 +21,20 @@ const mockNavigation = {
   navigate: mockNavigate,
 };
 
+/**
+ * Test Suite for Register Component
+ * 
+ * Tests the registration functionality for new users:
+ * - Form validation
+ * - Password matching
+ * - Student-specific field validation
+ * - Successful registration flow
+ * - Error handling
+ * - Navigation after registration
+ * 
+ * Includes tests for both successful and failed registration attempts
+ */
+
 describe('Register Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();

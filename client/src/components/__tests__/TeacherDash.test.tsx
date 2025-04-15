@@ -5,6 +5,20 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, View, Text } from 'react-native';
 
+/**
+ * Test Suite for TeacherDash Component
+ * 
+ * Tests the teacher dashboard functionality:
+ * - Profile information display
+ * - Class list management
+ * - Loading states
+ * - Sign out process
+ * - Navigation to attendance taking
+ * - Class data display
+ * 
+ * Uses mock data for teacher profile, classes, and statistics
+ */
+
 // Mock dependencies
 jest.mock('axios');
 jest.mock('@react-native-async-storage/async-storage', () => ({

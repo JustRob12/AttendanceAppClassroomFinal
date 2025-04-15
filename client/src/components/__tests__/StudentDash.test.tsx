@@ -1,3 +1,16 @@
+/**
+ * Test Suite for StudentDash Component
+ * 
+ * This test suite verifies the functionality of the student dashboard, including:
+ * - Loading states and profile display
+ * - Student information rendering
+ * - QR code generation for attendance
+ * - Logout functionality
+ * - Class enrollment display
+ * 
+ * The tests use mock data for student profile, classes, and attendance records
+ * to simulate the actual component behavior.
+ */
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import StudentDash from '../StudentDash';

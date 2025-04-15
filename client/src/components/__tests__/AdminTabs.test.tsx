@@ -1,10 +1,32 @@
+/**
+ * Test Suite for AdminTabs Component
+ * 
+ * This test suite verifies the functionality of the admin dashboard tabs:
+ * - Initial rendering and loading states
+ * - Data fetching from API (teachers, students, admin profile)
+ * - Navigation between tabs
+ * - Logout functionality
+ * - Error handling
+ * 
+ * Mock Data:
+ * - Teachers list with contact info
+ * - Students list with academic details
+ * - Admin profile information
+ * 
+ * Dependencies Mocked:
+ * - axios for API calls
+ * - AsyncStorage for token management
+ * - Bottom Tab Navigator
+ * - Alert for logout confirmation
+ */
+
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import AdminTabs from '../AdminTabs';
 import { Alert, AlertButton } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Sample mock data
+// Sample mock data with descriptive comments
 const mockTeachers = [
   {
     id: 1,
@@ -32,7 +54,7 @@ const mockAdminData = {
   email: 'admin@example.com'
 };
 
-// Mock direct axios import used in component
+// Mock axios with specific responses for each endpoint
 jest.mock('axios', () => ({
   get: jest.fn((url) => {
     if (url.includes('/api/teachers')) {
@@ -51,24 +73,23 @@ jest.mock('axios', () => ({
   }
 }));
 
-// Mock AsyncStorage
+// Mock AsyncStorage for token management
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve('mock-token')),
   removeItem: jest.fn(() => Promise.resolve())
 }));
 
-// Mock AdminDashboard component
+// Mock AdminDashboard for simplified testing
 jest.mock('../AdminDashboard', () => () => null);
 
-// Mock environment
+// Mock environment configuration
 jest.mock('../../config/env', () => ({
   apiUrl: 'http://test-api.com'
 }));
 
-// Create a simplified tab navigator mock that renders all screens
+// Mock tab navigator to render all screens
 jest.mock('@react-navigation/bottom-tabs', () => {
   const React = require('react');
-  
   return {
     createBottomTabNavigator: () => ({
       Navigator: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -77,7 +98,7 @@ jest.mock('@react-navigation/bottom-tabs', () => {
   };
 });
 
-// Mock Alert
+// Mock Alert for logout confirmation
 jest.mock('react-native', () => {
   const rn = jest.requireActual('react-native');
   rn.Alert = {
@@ -86,50 +107,47 @@ jest.mock('react-native', () => {
   return rn;
 });
 
-// Suppress console errors
+// Suppress console errors during testing
 console.error = jest.fn();
 
 describe('AdminTabs Component', () => {
   beforeEach(() => {
-    // Reset mocks
     jest.clearAllMocks();
   });
 
+  // Test basic rendering
   it('renders without crashing', () => {
     const mockNavigate = jest.fn();
     render(<AdminTabs navigation={{ navigate: mockNavigate }} />);
-    // If rendering doesn't throw, test passes
   });
 
+  // Test initial loading state
   it('shows loading state initially', () => {
     const mockNavigate = jest.fn();
     const { getAllByText } = render(<AdminTabs navigation={{ navigate: mockNavigate }} />);
-    
-    // Should find loading indicators
     expect(getAllByText('Loading...').length).toBeGreaterThan(0);
   });
 
+  // Test API data fetching
   it('attempts to fetch data from the API', async () => {
     const mockNavigate = jest.fn();
     render(<AdminTabs navigation={{ navigate: mockNavigate }} />);
     
-    // Wait for the API calls to be made
     await waitFor(() => {
       expect(AsyncStorage.getItem).toHaveBeenCalledWith('token');
     });
   });
 
+  // Test logout functionality
   it('validates the logout functionality', async () => {
-    // Capture Alert.alert arguments
+    // Simulate pressing "Yes" on logout confirmation
     (Alert.alert as jest.Mock).mockImplementation((title, message, buttons) => {
-      // Simulate pressing the "Yes" button if found
       const yesButton = buttons?.find((button: AlertButton) => button.text === 'Yes');
       if (yesButton && yesButton.onPress) {
         yesButton.onPress();
       }
     });
     
-    // Create a function that mimics the logout behavior from AdminTabs.tsx
     const handleLogout = () => {
       Alert.alert(
         'Logout',
@@ -146,17 +164,14 @@ describe('AdminTabs Component', () => {
       );
     };
     
-    // Call the logout function directly
     handleLogout();
     
-    // Verify Alert was called with correct parameters
     expect(Alert.alert).toHaveBeenCalledWith(
       'Logout',
       'Are you sure you want to logout?',
       expect.any(Array)
     );
     
-    // Wait for the async operation inside the onPress handler
     await waitFor(() => {
       expect(AsyncStorage.removeItem).toHaveBeenCalledWith('token');
     });
