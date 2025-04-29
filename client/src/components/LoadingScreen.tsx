@@ -11,8 +11,8 @@ interface LoadingScreenProps {
 
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ message = 'Loading...' }) => {
   return (
-    <StyledView className="flex-1 bg-white justify-center items-center">
-      <ActivityIndicator size="large" color="#111827" />
+    <StyledView className="flex-1 bg-white justify-center items-center" testID="loading-screen">
+      <ActivityIndicator size="large" color="#111827" testID="loading-indicator" />
       <StyledText className="text-gray-600 mt-4">{message}</StyledText>
     </StyledView>
   );
