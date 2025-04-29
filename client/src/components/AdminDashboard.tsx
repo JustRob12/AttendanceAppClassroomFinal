@@ -40,12 +40,28 @@ const AdminDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      navigation.navigate('SignIn');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('token');
+              navigation.navigate('SignIn');
+            } catch (error) {
+              console.error('Error logging out:', error);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const fetchData = async () => {

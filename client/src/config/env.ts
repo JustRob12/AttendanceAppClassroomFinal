@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 const ENV = {
   dev: {
-    apiUrl: process.env.API_URL || 'http://192.168.1.5:3001',
+    apiUrl: process.env.API_URL || 'http://192.168.1.7:3001',
   },
   prod: {
     apiUrl: process.env.API_URL || 'https://your-production-url.com',

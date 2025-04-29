@@ -1098,12 +1098,28 @@ const StudentDash: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      navigation.navigate('SignIn');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to logout');
-    }
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('token');
+              navigation.navigate('SignIn');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to logout');
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading) {
