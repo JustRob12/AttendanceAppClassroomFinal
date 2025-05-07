@@ -76,8 +76,8 @@ The Attendance App Classroom revolutionizes how educational institutions handle 
 
 ## 🚀 Getting Started
 
-1. Download the app from the Play Store
-2. Create an account with your institutional email
+1. Download the app
+2. Create an account
 3. Verify your account
 4. Set up your profile
 5. Start using the features based on your role (Teacher/Student/Admin)
@@ -85,7 +85,7 @@ The Attendance App Classroom revolutionizes how educational institutions handle 
 ## 💡 Support
 
 For any queries or support:
-- Email: roberto.com
+- Email: roberto.prisoris@dorsu.edu.ph; kitadrian.diocares@dorsu.edu.ph; jennybabe.arac@dorsu.edu.ph
 - In-app support section
 - User guides and documentation available in the app
 
