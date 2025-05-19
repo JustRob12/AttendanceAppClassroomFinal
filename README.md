@@ -85,7 +85,7 @@ The Attendance App Classroom revolutionizes how educational institutions handle 
 ## 💡 Support
 
 For any queries or support:
-- Email: roberto.prisoris@dorsu.edu.ph; kitadrian.diocares@dorsu.edu.ph; jennybabe.arac@dorsu.edu.ph
+- Email: roberto.prisoris@dorsu.edu.ph; kitadrian.diocares@dorsu.edu.ph; jennybabe.arac@dorsu.edu.ph; shannen.mendoza@dorsu.edu.ph
 - In-app support section
 - User guides and documentation available in the app
 
